@@ -27,8 +27,7 @@ void Merge(int l1, int r1, int l2, int r2, int lb) {
     if (l1 > r1) return;
     if (l2 > r2) {
 #pragma omp parallel for
-        for (int i = l1; i <= r1; i++)
-            b[lb + i - l1] = a[i];
+        for (int i = l1; i <= r1; i++) b[lb + i - l1] = a[i];
         return;
     }
     int mid1 = (l1 + r1) >> 1;
@@ -72,7 +71,7 @@ int main(int argc, char *argv[]) {
     for (int i = 1; i <= n; i++) scanf("%d", a + i);
 
     Sort(1, n);
-    //for (int i = 1; i <= n; i++) printf("%d\n", a[i]);
+    // for (int i = 1; i <= n; i++) printf("%d\n", a[i]);
 
     for (int i = 1; i < n; i++) assert(a[i] <= a[i + 1]);
 

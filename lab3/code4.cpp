@@ -4,10 +4,8 @@ using namespace std;
 struct SubMat {
     int sx, sy, ex, ey;
     unsigned int **a;
-    SubMat(int sx, int sy, int ex, int ey,
-           unsigned int **a) :
-        sx(sx),
-        sy(sy), ex(ex), ey(ey), a(a) {
+    SubMat(int sx, int sy, int ex, int ey, unsigned int **a) :
+        sx(sx), sy(sy), ex(ex), ey(ey), a(a) {
     }
 };
 
@@ -83,8 +81,7 @@ struct Matrix {
         a = new unsigned int *[n + 1];
         for (int i = 1; i <= n; i++) {
             a[i] = new unsigned int[m + 1];
-            memcpy(a[i], _.a[i],
-                   (m + 1) * sizeof(unsigned int));
+            memcpy(a[i], _.a[i], (m + 1) * sizeof(unsigned int));
         }
     }
     ~Matrix() {
@@ -126,7 +123,6 @@ int main() {
         sum += c.a[1][1];
     }
     double t1 = omp_get_wtime();
-    printf("sum is %u.\nTime elapsed is %lf.\n", sum,
-           t1 - t0);
+    printf("sum is %u.\nTime elapsed is %lf.\n", sum, t1 - t0);
     return 0;
 }

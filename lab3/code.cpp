@@ -17,8 +17,7 @@ struct Matrix {
         a = new unsigned int *[n + 1];
         for (int i = 1; i <= n; i++) {
             a[i] = new unsigned int[m + 1];
-            memcpy(a[i], _.a[i],
-                   (m + 1) * sizeof(unsigned int));
+            memcpy(a[i], _.a[i], (m + 1) * sizeof(unsigned int));
         }
     }
     ~Matrix() {
@@ -35,8 +34,7 @@ struct Matrix {
 #pragma omp parallel for
         for (int i = 1; i <= n; i++)
             for (int j = 1; j <= _.m; j++)
-                for (int k = 1; k <= m; k++)
-                    res.a[i][j] += a[i][k] * _.a[k][j];
+                for (int k = 1; k <= m; k++) res.a[i][j] += a[i][k] * _.a[k][j];
         return res;
     }
 };
@@ -60,7 +58,6 @@ int main() {
         sum += c.a[1][1];
     }
     double t1 = omp_get_wtime();
-    printf("sum is %u.\nTime elapsed is %lf.\n", sum,
-           t1 - t0);
+    printf("sum is %u.\nTime elapsed is %lf.\n", sum, t1 - t0);
     return 0;
 }

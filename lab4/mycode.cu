@@ -34,19 +34,15 @@ void FFT(double *A, double *res, int n, int *rev) {
 }
 } // namespace CPU
 namespace GPU {
-__global__ void copyToReal(double *a, cuDoubleComplex *b,
-                           int n) {
+__global__ void copyToReal(double *a, cuDoubleComplex *b, int n) {
     int id = blockIdx.x * blockDim.x + threadIdx.x;
     for (int i = id; i < n; i += blockDim.x * gridDim.x) {
         b[i] = make_cuDoubleComplex(a[i], 0);
     }
 }
-__global__ void copyToDouble(double *a, cuDoubleComplex *b,
-                             int n) {
+__global__ void copyToDouble(double *a, cuDoubleComplex *b, int n) {
     int id = blockIdx.x * blockDim.x + threadIdx.x;
-    for (int i = id; i < n; i += blockDim.x * gridDim.x) {
-        a[i] = b[i].x;
-    }
+    for (int i = id; i < n; i += blockDim.x * gridDim.x) { a[i] = b[i].x; }
 }
 __global__ void rev(cuDoubleComplex *a, int *rev, int n) {
     int id = blockIdx.x * blockDim.x + threadIdx.x;
@@ -63,8 +59,8 @@ __global__ void fft(cuDoubleComplex *a, int l, int n) {
     for (int i = id; i < n; i += blockDim.x * gridDim.x) {
         if (i & l) continue;
         int j = i & (l - 1);
-        cuDoubleComplex w = make_cuDoubleComplex(
-            cos(j * M_PI / l), sin(j * M_PI / l));
+        cuDoubleComplex w =
+            make_cuDoubleComplex(cos(j * M_PI / l), sin(j * M_PI / l));
         cuDoubleComplex x = a[i];
         cuDoubleComplex y = cuCmul(a[i + l], w);
 
@@ -81,8 +77,7 @@ int main() {
     int *rev = new int[N];
     double *res_cpu = new double[N];
     double *res_gpu = new double[N];
-    for (int i = 0; i < N; i++)
-        rev[i] = (rev[i >> 1] >> 1) | ((i & 1) << 19);
+    for (int i = 0; i < N; i++) rev[i] = (rev[i >> 1] >> 1) | ((i & 1) << 19);
     for (int i = 0; i < N; i++) a_cpu[i] = i;
 
     double t0 = clock();
@@ -90,8 +85,7 @@ int main() {
 
     double t1 = clock();
     // output runtime(s)
-    cout << "CPU time: " << (t1 - t0) / CLOCKS_PER_SEC
-         << "s" << endl;
+    cout << "CPU time: " << (t1 - t0) / CLOCKS_PER_SEC << "s" << endl;
 
     cuDoubleComplex *a;
     double *a_gpu;
@@ -100,14 +94,12 @@ int main() {
     cudaMalloc(&rev_gpu, N * sizeof(int));
     cudaMalloc(&a, N * sizeof(cuDoubleComplex));
 
-    cudaMemcpy(a_gpu, a_cpu, N * sizeof(double),
-               cudaMemcpyHostToDevice);
-    cudaMemcpy(rev_gpu, rev, N * sizeof(int),
-               cudaMemcpyHostToDevice);
+    cudaMemcpy(a_gpu, a_cpu, N * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(rev_gpu, rev, N * sizeof(int), cudaMemcpyHostToDevice);
 
     double t2 = clock();
-    cout << "CPU copy to GPU time: "
-         << (t2 - t1) / CLOCKS_PER_SEC << "s" << endl;
+    cout << "CPU copy to GPU time: " << (t2 - t1) / CLOCKS_PER_SEC << "s"
+         << endl;
 
     GPU::copyToReal<<<GRID_DIM, BLOCK_DIM>>>(a_gpu, a, N);
     // cudaDeviceSynchronize();
@@ -115,23 +107,19 @@ int main() {
     GPU::rev<<<GRID_DIM, BLOCK_DIM>>>(a, rev_gpu, N);
     // cudaDeviceSynchronize();
 
-    for (int l = 1; l < N; l <<= 1)
-        GPU::fft<<<GRID_DIM, BLOCK_DIM>>>(a, l, N);
+    for (int l = 1; l < N; l <<= 1) GPU::fft<<<GRID_DIM, BLOCK_DIM>>>(a, l, N);
     // cudaDeviceSynchronize();
     GPU::copyToDouble<<<GRID_DIM, BLOCK_DIM>>>(a_gpu, a, N);
 
     double t3 = clock();
-    cout << "GPU time: " << (t3 - t2) / CLOCKS_PER_SEC
-         << "s" << endl;
-    cudaMemcpy(res_gpu, a_gpu, N * sizeof(double),
-               cudaMemcpyDeviceToHost);
+    cout << "GPU time: " << (t3 - t2) / CLOCKS_PER_SEC << "s" << endl;
+    cudaMemcpy(res_gpu, a_gpu, N * sizeof(double), cudaMemcpyDeviceToHost);
     double t4 = clock();
-    cout << "GPU copy to CPU time: "
-         << (t4 - t3) / CLOCKS_PER_SEC << "s" << endl;
+    cout << "GPU copy to CPU time: " << (t4 - t3) / CLOCKS_PER_SEC << "s"
+         << endl;
     // cudaDeviceSynchronize();
     for (int i = 0; i < N; i++)
-        assert(abs((res_cpu[i] - res_gpu[i]) / res_cpu[i])
-               < 1e-3);
+        assert(abs((res_cpu[i] - res_gpu[i]) / res_cpu[i]) < 1e-3);
 
     return 0;
 }

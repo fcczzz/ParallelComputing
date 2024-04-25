@@ -17,8 +17,7 @@ struct Matrix {
         a = new unsigned int *[n + 1];
         for (int i = 1; i <= n; i++) {
             a[i] = new unsigned int[m + 1];
-            memcpy(a[i], _.a[i],
-                   (m + 1) * sizeof(unsigned int));
+            memcpy(a[i], _.a[i], (m + 1) * sizeof(unsigned int));
         }
     }
     ~Matrix() {
@@ -32,27 +31,22 @@ struct Matrix {
     pair<Matrix, Matrix> split_by_ind(const int &_) const {
         Matrix x(_, m), y(n - _, m);
         for (int i = 1; i <= _; i++)
-            memcpy(x.a[i], a[i],
-                   (m + 1) * sizeof(unsigned int));
+            memcpy(x.a[i], a[i], (m + 1) * sizeof(unsigned int));
         for (int i = _ + 1; i <= n; i++)
-            memcpy(y.a[i - _], a[i],
-                   (m + 1) * sizeof(unsigned int));
+            memcpy(y.a[i - _], a[i], (m + 1) * sizeof(unsigned int));
         return make_pair(x, y);
     }
     pair<Matrix, Matrix> split_by_row(const int &_) const {
         Matrix x(n, _), y(n, m - _);
         for (int i = 1; i <= n; i++) {
 #pragma omp parallel for
-            for (int j = 1; j <= _; j++)
-                x.a[i][j] = a[i][j];
+            for (int j = 1; j <= _; j++) x.a[i][j] = a[i][j];
 #pragma omp parallel for
-            for (int j = _ + 1; j <= m; j++)
-                y.a[i][j - _] = a[i][j];
+            for (int j = _ + 1; j <= m; j++) y.a[i][j - _] = a[i][j];
         }
         return make_pair(x, y);
     }
-    void copy(const Matrix &_, const int &sx,
-              const int &sy) {
+    void copy(const Matrix &_, const int &sx, const int &sy) {
 #pragma omp parallel for
         for (int i = sx; i < sx + _.n; i++)
             for (int j = sy; j < sy + _.m; j++) {
@@ -118,7 +112,6 @@ int main() {
         sum += c.a[1][1];
     }
     double t1 = omp_get_wtime();
-    printf("sum is %u.\nTime elapsed is %lf.\n", sum,
-           t1 - t0);
+    printf("sum is %u.\nTime elapsed is %lf.\n", sum, t1 - t0);
     return 0;
 }

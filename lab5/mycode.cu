@@ -1,4 +1,5 @@
 #include <bits/stdc++.h>
+#include <opencv2/opencv.hpp>
 
 using namespace std;
 
@@ -62,8 +63,7 @@ namespace GPU {
 __global__ void sharpen(int *src, int *dest, int n, int m) {
     int id = blockIdx.x * blockDim.x + threadIdx.x;
 
-    for (int i = id; i < n * m;
-         i += blockDim.x * gridDim.x) {
+    for (int i = id; i < n * m; i += blockDim.x * gridDim.x) {
         int x = i / m;
         int y = i % m;
         if (x > 0 && x < n - 1 && y > 0 && y < m - 1) {
@@ -91,42 +91,33 @@ int main() {
     const int GRID_DIM = 32;
     Mat src(N, N);
     for (int i = 0; i < 4096; i++) {
-        for (int j = 0; j < 4096; j++) {
-            src(i, j) = rand() % 256;
-        }
+        for (int j = 0; j < 4096; j++) { src(i, j) = rand() % 256; }
     }
     double t0 = clock();
     Mat res = CPU::sharpen(src);
     double t1 = clock();
-    cout << "CPU time: " << (t1 - t0) / CLOCKS_PER_SEC
-         << "s" << endl;
+    cout << "CPU time: " << (t1 - t0) / CLOCKS_PER_SEC << "s" << endl;
 
     int *gpu_src, *gpu_dst, *gpu_res = new int[N * N];
     cudaMalloc(&gpu_src, N * N * sizeof(int));
     cudaMalloc(&gpu_dst, N * N * sizeof(int));
-    cudaMemcpy(gpu_src, src.a, N * N * sizeof(int),
-               cudaMemcpyHostToDevice);
+    cudaMemcpy(gpu_src, src.a, N * N * sizeof(int), cudaMemcpyHostToDevice);
     double t2 = clock();
-    cout << "CPU copy to GPU time: "
-         << (t2 - t1) / CLOCKS_PER_SEC << "s" << endl;
+    cout << "CPU copy to GPU time: " << (t2 - t1) / CLOCKS_PER_SEC << "s"
+         << endl;
 
-    GPU::sharpen<<<GRID_DIM, BLOCK_DIM>>>(gpu_src, gpu_dst,
-                                          N, N);
+    GPU::sharpen<<<GRID_DIM, BLOCK_DIM>>>(gpu_src, gpu_dst, N, N);
     double t3 = clock();
-    cout << "GPU time: " << (t3 - t2) / CLOCKS_PER_SEC
-         << "s" << endl;
-    cudaMemcpy(gpu_res, gpu_dst, N * N * sizeof(int),
-               cudaMemcpyDeviceToHost);
+    cout << "GPU time: " << (t3 - t2) / CLOCKS_PER_SEC << "s" << endl;
+    cudaMemcpy(gpu_res, gpu_dst, N * N * sizeof(int), cudaMemcpyDeviceToHost);
 
     double t4 = clock();
-    cout << "GPU copy to CPU time: "
-         << (t4 - t3) / CLOCKS_PER_SEC << "s" << endl;
+    cout << "GPU copy to CPU time: " << (t4 - t3) / CLOCKS_PER_SEC << "s"
+         << endl;
 
     // check the result
     for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            assert(res(i, j) == gpu_res[i * N + j]);
-        }
+        for (int j = 0; j < N; j++) { assert(res(i, j) == gpu_res[i * N + j]); }
     }
 
     return 0;

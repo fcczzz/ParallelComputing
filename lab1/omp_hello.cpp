@@ -8,14 +8,17 @@ int main(int argc, char *argv[]) {
     t0 = omp_get_wtime();
 #pragma omp parallel private(tid)
     {
-        nthreads = omp_get_num_threads(); // get num of threads
-        tid = omp_get_thread_num();       // get my thread id
-        printf("From thread %d out of %d, Hello World!\n", tid, nthreads);
+        nthreads =
+            omp_get_num_threads();  // get num of threads
+        tid = omp_get_thread_num(); // get my thread id
+        printf("From thread %d out of %d, Hello World!\n",
+               tid, nthreads);
     }
     t1 = omp_get_wtime();
     nthreads = omp_get_num_threads(); // get num of threads
     tid = omp_get_thread_num();       // get my thread id
-    printf("From thread %d out of %d, Hello World!\n", tid, nthreads);
+    printf("From thread %d out of %d, Hello World!\n", tid,
+           nthreads);
 
     printf("Time elapsed is %f.\n", t1 - t0);
     return 0;

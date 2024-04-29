@@ -27,22 +27,7 @@ void Merge(int l1, int r1, int l2, int r2, int lb) {
     }
     if (l1 > r1) return;
     if (l2 > r2) {
-        // #pragma omp parallel for
-        //         for (int i = l1; i <= r1; i++)
-        //             b[lb + i - l1] = a[i];
         memcpy(b + lb, a + l1, sizeof(int) * (r1 - l1 + 1));
-        return;
-    }
-
-    if (r1 - l1 + r2 - l2 <= 1000) {
-        int i = l1, j = l2, k = lb;
-        while (i <= r1 && j <= r2)
-            if (a[i] <= a[j])
-                b[k++] = a[i++];
-            else
-                b[k++] = a[j++];
-        while (i <= r1) b[k++] = a[i++];
-        while (j <= r2) b[k++] = a[j++];
         return;
     }
 
@@ -62,14 +47,6 @@ void Merge(int l1, int r1, int l2, int r2, int lb) {
 
 void Sort(int l, int r) {
     if (l == r) return;
-    if (r - l + 1 <= 100) {
-        for (int i = 0; i <= r - l; i++)
-#pragma omp parallel for
-            for (int j = l + (i & 1); j < r; j += 2)
-                if (a[j] > a[j + 1])
-                    std::swap(a[j], a[j + 1]);
-        return;
-    }
     int mid = (l + r) >> 1;
 #pragma omp parallel sections
     {
@@ -80,8 +57,6 @@ void Sort(int l, int r) {
         Sort(mid + 1, r);
     }
     Merge(l, mid, mid + 1, r, l);
-    // #pragma omp parallel for
-    //     for (int i = l; i <= r; i++) a[i] = b[i];
     memcpy(a + l, b + l, sizeof(int) * (r - l + 1));
 }
 
@@ -95,7 +70,6 @@ int main(int argc, char *argv[]) {
     for (int i = 1; i <= n; i++) scanf("%d", a + i);
 
     Sort(1, n);
-    // for (int i = 1; i <= n; i++) printf("%d\n", a[i]);
 
     for (int i = 1; i < n; i++) assert(a[i] <= a[i + 1]);
 

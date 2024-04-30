@@ -1,2 +1,1 @@
-# ParallelComputing
-repositories for 2024 Spring ParallelComputing labs
+Repositories of 2024 Spring ParallelComputing labs

@@ -77,25 +77,14 @@ struct Matrix {
 #pragma omp parallel sections
             {
 #pragma omp section
-                {
-                    auto c1 = sa.first * sb.first;
-                    res.copy(c1, 1, 1);
-                }
+                res.copy(sa.first * sb.first, 1, 1);
 #pragma omp section
-                {
-                    auto c2 = sa.first * sb.second;
-                    res.copy(c2, 1, m2 + 1);
-                }
+                res.copy(sa.first * sb.second, 1, m2 + 1);
 #pragma omp section
-                {
-                    auto c3 = sa.second * sb.first;
-                    res.copy(c3, m1 + 1, 1);
-                }
+                res.copy(sa.second * sb.first, m1 + 1, 1);
 #pragma omp section
-                {
-                    auto c4 = sa.second * sb.second;
-                    res.copy(c4, m1 + 1, m2 + 1);
-                }
+                res.copy(sa.second * sb.second, m1 + 1,
+                         m2 + 1);
             }
         }
         return res;

@@ -25,45 +25,35 @@ void Mult(SubMat a, SubMat b, SubMat c) {
         return;
     }
 
-    // split a,b into 4 mats.
-    //
+    // split a,b into 2 mats.
+
     int axm = (a.sx + a.ex) >> 1;
-    int aym = (a.sy + a.ey) >> 1;
-    int bxm = (b.sx + b.ex) >> 1;
     int bym = (b.sy + b.ey) >> 1;
-    SubMat a11(a.sx, a.sy, axm, aym, a.a);
-    SubMat a12(a.sx, aym + 1, axm, a.ey, a.a);
-    SubMat a21(axm + 1, a.sy, a.ex, aym, a.a);
-    SubMat a22(axm + 1, aym + 1, a.ex, a.ey, a.a);
+    SubMat a1(a.sx, a.sy, axm, a.ey, a.a);
+    SubMat a2(axm + 1, a.sy, a.ex, a.ey, a.a);
 
-    SubMat b11(b.sx, b.sy, bxm, bym, b.a);
-    SubMat b12(b.sx, bym + 1, bxm, b.ey, b.a);
-    SubMat b21(bxm + 1, b.sy, b.ex, bym, b.a);
-    SubMat b22(bxm + 1, bym + 1, b.ex, b.ey, b.a);
+    SubMat b1(b.sx, b.sy, b.ex, bym, b.a);
+    SubMat b2(b.sx, bym + 1, b.ex, b.ey, b.a);
 
-    SubMat c11(a.sx, b.sy, axm, bym, c.a);
-    SubMat c12(a.sx, bym + 1, axm, b.ey, c.a);
-    SubMat c21(axm + 1, b.sy, a.ex, bym, c.a);
-    SubMat c22(axm + 1, bym + 1, a.ex, b.ey, c.a);
+    SubMat c11(c.sx, c.sy, c.sx + axm - a.sx,
+               c.sy + bym - b.sy, c.a);
+    SubMat c12(c.sx, c.sy + bym - b.sy + 1,
+               c.sx + axm - a.sx, c.ey, c.a);
+    SubMat c21(c.sx + axm - a.sx + 1, c.sy, c.ex,
+               c.sy + bym - b.sy, c.a);
+    SubMat c22(c.sx + axm - a.sx + 1, c.sy + bym - b.sy + 1,
+               c.ex, c.ey, c.a);
 
 #pragma omp parallel sections
     {
 #pragma omp section
-        Mult(a11, b11, c11);
+        Mult(a1, b1, c11);
 #pragma omp section
-        Mult(a12, b21, c11);
+        Mult(a1, b2, c12);
 #pragma omp section
-        Mult(a11, b12, c12);
+        Mult(a2, b1, c21);
 #pragma omp section
-        Mult(a12, b22, c12);
-#pragma omp section
-        Mult(a21, b11, c21);
-#pragma omp section
-        Mult(a22, b21, c21);
-#pragma omp section
-        Mult(a21, b12, c22);
-#pragma omp section
-        Mult(a22, b22, c22);
+        Mult(a2, b2, c22);
     }
 }
 

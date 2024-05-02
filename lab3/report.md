@@ -155,26 +155,6 @@ void Mult(SubMat a, SubMat b, SubMat c) {
 我们分别对以上三种方法进行了一次$2000\times 2000$的矩阵乘法，并记录了时间。如下所示：
 
 #### 5.1 行并行
-<!-- ab3 git:(main) ✗ export OMP_NUM_THREADS=1
-➜  lab3 git:(main) ✗ ./code
-sum is 1077213584.
-Time elapsed is 47.081813.
-➜  lab3 git:(main) ✗ export OMP_NUM_THREADS=2 
-➜  lab3 git:(main) ✗ ./code                  
-sum is 1077213584.
-Time elapsed is 25.631217.
-➜  lab3 git:(main) ✗ export OMP_NUM_THREADS=4
-➜  lab3 git:(main) ✗ ./code                  
-sum is 1077213584.
-Time elapsed is 12.011230.
-➜  lab3 git:(main) ✗ export OMP_NUM_THREADS=8
-➜  lab3 git:(main) ✗ ./code                  
-sum is 1077213584.
-Time elapsed is 5.983183.
-➜  lab3 git:(main) ✗ export OMP_NUM_THREADS=16
-➜  lab3 git:(main) ✗ ./code                   
-sum is 1077213584.
-Time elapsed is 4.622329. -->
 |线程数|时间(s)|加速比|
 |:-:|:-:|:-:|
 |1|47.081813|1|
@@ -184,22 +164,6 @@ Time elapsed is 4.622329. -->
 |16|4.622329|10.19|
 
 #### 5.2 分块并行
-<!-- ➜  lab3 git:(main) ✗ export OMP_NUM_THREADS=2
-➜  lab3 git:(main) ✗ ./code2                 
-sum is 1077213584.
-Time elapsed is 17.977252.
-➜  lab3 git:(main) ✗ export OMP_NUM_THREADS=4
-➜  lab3 git:(main) ✗ ./code2                 
-sum is 1077213584.
-Time elapsed is 9.317965.
-➜  lab3 git:(main) ✗ export OMP_NUM_THREADS=8
-➜  lab3 git:(main) ✗ ./code2                 
-sum is 1077213584.
-Time elapsed is 9.508511.
-➜  lab3 git:(main) ✗ export OMP_NUM_THREADS=16
-➜  lab3 git:(main) ✗ ./code2                  
-sum is 1077213584.
-Time elapsed is 9.532316. -->
 |线程数|时间(s)|加速比|
 |:-:|:-:|:-:|
 |1|47.081813|1|
@@ -209,22 +173,6 @@ Time elapsed is 9.532316. -->
 |16|9.532316|4.94|
 
 #### 5.3 只传递下标的分块并行
-<!--  export OMP_NUM_THREADS=2           
-➜  lab3 git:(main) ✗ ./code3
-sum is 1077213584.
-Time elapsed is 1.689669.
-➜  lab3 git:(main) ✗ export OMP_NUM_THREADS=4
-➜  lab3 git:(main) ✗ ./code3                 
-sum is 1077213584.
-Time elapsed is 0.858368.
-➜  lab3 git:(main) ✗ export OMP_NUM_THREADS=8
-➜  lab3 git:(main) ✗ ./code3                 
-sum is 1077213584.
-Time elapsed is 0.848744.
-➜  lab3 git:(main) ✗ export OMP_NUM_THREADS=16
-➜  lab3 git:(main) ✗ ./code3                  
-sum is 1077213584.
-Time elapsed is 0.897218. -->
 
 |线程数|时间(s)|加速比|
 |:-:|:-:|:-:|

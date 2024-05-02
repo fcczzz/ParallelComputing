@@ -54,15 +54,20 @@ __global__ void rev(cuDoubleComplex *a, int *rev, int n) {
         }
     }
 }
-__global__ void fft(cuDoubleComplex *a, int l, int n) {
+__global__ void init_w(cuDoubleComplex *w, int l) {
     int id = blockIdx.x * blockDim.x + threadIdx.x;
-    for (int i = id; i < n; i += blockDim.x * gridDim.x) {
-        if (i & l) continue;
-        int j = i & (l - 1);
-        cuDoubleComplex w =
-            make_cuDoubleComplex(cos(j * M_PI / l), sin(j * M_PI / l));
+    for (int i = id; i < l; i += blockDim.x * gridDim.x) {
+        w[i] = make_cuDoubleComplex(cos(i * M_PI / l), sin(i * M_PI / l));
+    }
+}
+__global__ void fft(cuDoubleComplex *a, int l, int t, int n,
+                    cuDoubleComplex *w) {
+    int id = blockIdx.x * blockDim.x + threadIdx.x;
+    for (int I = id; I < (n >> 1); I += blockDim.x * gridDim.x) {
+        int j = I & (l - 1);
+        int i = (I >> t << (t + 1)) | j;
         cuDoubleComplex x = a[i];
-        cuDoubleComplex y = cuCmul(a[i + l], w);
+        cuDoubleComplex y = cuCmul(a[i + l], w[j]);
 
         a[i] = cuCadd(x, y);
         a[i + l] = cuCsub(x, y);
@@ -70,7 +75,7 @@ __global__ void fft(cuDoubleComplex *a, int l, int n) {
 }
 } // namespace GPU
 int main() {
-    const int N = 1 << 24;
+    const int N = 1 << 25;
     const int BLOCK_DIM = 4;
     const int GRID_DIM = 32;
     double *a_cpu = new double[N];
@@ -87,12 +92,13 @@ int main() {
     // output runtime(s)
     cout << "CPU time: " << (t1 - t0) / CLOCKS_PER_SEC << "s" << endl;
 
-    cuDoubleComplex *a;
+    cuDoubleComplex *a, *w;
     double *a_gpu;
     int *rev_gpu;
     cudaMalloc(&a_gpu, N * sizeof(double));
     cudaMalloc(&rev_gpu, N * sizeof(int));
     cudaMalloc(&a, N * sizeof(cuDoubleComplex));
+    cudaMalloc(&w, N * sizeof(cuDoubleComplex));
 
     cudaMemcpy(a_gpu, a_cpu, N * sizeof(double), cudaMemcpyHostToDevice);
     cudaMemcpy(rev_gpu, rev, N * sizeof(int), cudaMemcpyHostToDevice);
@@ -102,14 +108,29 @@ int main() {
          << endl;
 
     GPU::copyToReal<<<GRID_DIM, BLOCK_DIM>>>(a_gpu, a, N);
-    // cudaDeviceSynchronize();
 
     GPU::rev<<<GRID_DIM, BLOCK_DIM>>>(a, rev_gpu, N);
+
+    cudaDeviceSynchronize();
+
+    double tfft0 = clock();
+
+    for (int l = 1, t = 0; l < N; l <<= 1, ++t) {
+        GPU::init_w<<<GRID_DIM, BLOCK_DIM>>>(w, l);
+        cudaDeviceSynchronize();
+        GPU::fft<<<GRID_DIM, BLOCK_DIM>>>(a, l, t, N, w);
+        cudaDeviceSynchronize();
+    }
+
     // cudaDeviceSynchronize();
 
-    for (int l = 1; l < N; l <<= 1) GPU::fft<<<GRID_DIM, BLOCK_DIM>>>(a, l, N);
-    // cudaDeviceSynchronize();
+    double tfft1 = clock();
+
+    cout << "GPU FFT time: " << (tfft1 - tfft0) / CLOCKS_PER_SEC << "s" << endl;
+
     GPU::copyToDouble<<<GRID_DIM, BLOCK_DIM>>>(a_gpu, a, N);
+
+    cudaDeviceSynchronize();
 
     double t3 = clock();
     cout << "GPU time: " << (t3 - t2) / CLOCKS_PER_SEC << "s" << endl;

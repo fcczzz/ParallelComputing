@@ -1,5 +1,5 @@
 #include <bits/stdc++.h>
-#include <opencv2/opencv.hpp>
+// #include <opencv2/opencv.hpp>
 
 using namespace std;
 
@@ -107,8 +107,12 @@ int main() {
          << endl;
 
     GPU::sharpen<<<GRID_DIM, BLOCK_DIM>>>(gpu_src, gpu_dst, N, N);
+
+    cudaDeviceSynchronize();
+
     double t3 = clock();
     cout << "GPU time: " << (t3 - t2) / CLOCKS_PER_SEC << "s" << endl;
+
     cudaMemcpy(gpu_res, gpu_dst, N * N * sizeof(int), cudaMemcpyDeviceToHost);
 
     double t4 = clock();

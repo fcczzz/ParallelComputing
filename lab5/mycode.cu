@@ -1,5 +1,5 @@
 #include <bits/stdc++.h>
-// #include <opencv2/opencv.hpp>
+#include <opencv2/opencv.hpp>
 
 using namespace std;
 
@@ -87,8 +87,17 @@ int main() {
     // gen a random mat
     srand(time(0));
     const int N = 1 << 12;
-    const int BLOCK_DIM = 4;
-    const int GRID_DIM = 32;
+    const int BLOCK_DIM = 1024;
+    const int GRID_DIM = 1024;
+
+    cv::Mat image = cv::imread("images.jpg", cv::IMREAD_GRAYSCALE);
+    cv::namedWindow("image", cv::WINDOW_NORMAL);
+    cv::imshow("image", image);
+    cv::waitKey(0);
+
+
+    return 0;
+
     Mat src(N, N);
     for (int i = 0; i < 4096; i++) {
         for (int j = 0; j < 4096; j++) { src(i, j) = rand() % 256; }
@@ -123,6 +132,10 @@ int main() {
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) { assert(res(i, j) == gpu_res[i * N + j]); }
     }
+
+    cudaFree(gpu_src);
+    cudaFree(gpu_dst);
+    delete[] gpu_res;
 
     return 0;
 }

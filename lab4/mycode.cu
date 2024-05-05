@@ -62,7 +62,7 @@ __global__ void fft(cuDoubleComplex *a, int l, int t, int n,
 } // namespace GPU
 int main() {
     const int N = 1 << 20;
-    const int BLOCK_DIM = 32;
+    const int BLOCK_DIM = 1024;
     const int GRID_DIM = 1024;
     double *a_cpu = new double[N];
     double *res_cpu = new double[N];

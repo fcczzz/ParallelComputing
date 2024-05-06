@@ -76,8 +76,7 @@ int main() {
     double t = 0;
     for (int i = 0; i < 3; i++) {
         cv::Mat &src = image_channels[i];
-        // cout << src.size().width << " " <<
-        // src.size().height << endl; copy src to Mat
+
         Mat src_mat(src.size().height, src.size().width);
         for (int i = 0; i < src.size().height; i++) {
             for (int j = 0; j < src.size().width; j++) {
@@ -101,6 +100,8 @@ int main() {
 
     cout << "CPU time: " << t / CLOCKS_PER_SEC << endl;
     cv::merge(image_channels, image);
+
+    cv::imwrite("result.jpg", image);
 
     cv::namedWindow("image", cv::WINDOW_NORMAL);
     cv::imshow("image", image);

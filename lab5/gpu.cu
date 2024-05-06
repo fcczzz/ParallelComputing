@@ -7,34 +7,6 @@ using namespace std;
 //-1 -1 -1
 //-1 9 -1
 //-1 -1 -1
-struct Mat {
-    int *a, n, m;
-    Mat() {
-        n = m = 0;
-        a = nullptr;
-    }
-    Mat(int n, int m) : n(n), m(m) {
-        a = new int[n * m];
-        memset(a, 0, n * m * sizeof(int));
-    }
-    // move construct
-    Mat(Mat &&_) {
-        n = _.n, m = _.m;
-        a = _.a;
-        _.a = nullptr;
-    }
-    Mat(const Mat &_) {
-        n = _.n, m = _.m;
-        a = new int[n * m];
-        memcpy(a, _.a, n * m * sizeof(int));
-    }
-    ~Mat() {
-        delete[] a;
-    }
-    int &operator()(int x, int y) {
-        return a[x * m + y];
-    }
-};
 
 namespace GPU {
 __global__ void sharpen(int *src, int *dest, int n, int m) {
@@ -75,9 +47,10 @@ int main() {
         // cout << src.size().width << " " << src.size().height << endl;
         // copy src to Mat
         int n = src.size().height, m = src.size().width;
-        Mat src_mat(n, m);
+        int *src_array = new int[n * m];
         for (int i = 0; i < n; i++) {
-            for (int j = 0; j < m; j++) { src_mat(i, j) = src.at<uchar>(i, j); }
+            for (int j = 0; j < m; j++)
+                src_array[i * m + j] = src.at<uchar>(i, j);
         }
 
         int *gpu_src, *gpu_dst, *gpu_res = new int[n * m];
@@ -85,7 +58,7 @@ int main() {
         cudaMalloc(&gpu_dst, n * m * sizeof(int));
         double t0 = clock();
 
-        cudaMemcpy(gpu_src, src_mat.a, n * m * sizeof(int),
+        cudaMemcpy(gpu_src, src_array, n * m * sizeof(int),
                    cudaMemcpyHostToDevice);
         cudaDeviceSynchronize();
         double t1 = clock();
@@ -108,6 +81,10 @@ int main() {
                 src.at<uchar>(i, j) = max(0, min(255, gpu_res[i * m + j]));
             }
         }
+        cudaFree(gpu_src);
+        cudaFree(gpu_dst);
+        delete[] gpu_res;
+        delete[] src_array;
     }
 
     cout << "CPU copy to GPU time: " << tCpu2Gpu / CLOCKS_PER_SEC << "s"

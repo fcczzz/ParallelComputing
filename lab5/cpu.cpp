@@ -1,5 +1,4 @@
 #include <bits/stdc++.h>
-#include <ctime>
 #include <opencv2/opencv.hpp>
 
 using namespace std;

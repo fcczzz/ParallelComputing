@@ -12,7 +12,8 @@ namespace GPU {
 __global__ void sharpen(int *src, int *dest, int n, int m) {
     int id = blockIdx.x * blockDim.x + threadIdx.x;
 
-    for (int i = id; i < n * m; i += blockDim.x * gridDim.x) {
+    for (int i = id; i < n * m;
+         i += blockDim.x * gridDim.x) {
         int x = i / m;
         int y = i % m;
         if (x > 0 && x < n - 1 && y > 0 && y < m - 1) {
@@ -44,8 +45,8 @@ int main() {
     double tCpu2Gpu = 0, tGpu = 0, tGpu2Cpu = 0;
     for (int i = 0; i < 3; i++) {
         cv::Mat &src = image_channels[i];
-        // cout << src.size().width << " " << src.size().height << endl;
-        // copy src to Mat
+        // cout << src.size().width << " " <<
+        // src.size().height << endl; copy src to Mat
         int n = src.size().height, m = src.size().width;
         int *src_array = new int[n * m];
         for (int i = 0; i < n; i++) {
@@ -63,7 +64,8 @@ int main() {
         cudaDeviceSynchronize();
         double t1 = clock();
 
-        GPU::sharpen<<<GRID_DIM, BLOCK_DIM>>>(gpu_src, gpu_dst, n, m);
+        GPU::sharpen<<<GRID_DIM, BLOCK_DIM>>>(
+            gpu_src, gpu_dst, n, m);
         cudaDeviceSynchronize();
         double t2 = clock();
 
@@ -78,7 +80,8 @@ int main() {
 
         for (int i = 0; i < src.size().height; i++) {
             for (int j = 0; j < src.size().width; j++) {
-                src.at<uchar>(i, j) = max(0, min(255, gpu_res[i * m + j]));
+                src.at<uchar>(i, j) =
+                    max(0, min(255, gpu_res[i * m + j]));
             }
         }
         cudaFree(gpu_src);
@@ -87,11 +90,12 @@ int main() {
         delete[] src_array;
     }
 
-    cout << "CPU copy to GPU time: " << tCpu2Gpu / CLOCKS_PER_SEC << "s"
+    cout << "CPU copy to GPU time: "
+         << tCpu2Gpu / CLOCKS_PER_SEC << "s" << endl;
+    cout << "GPU time: " << tGpu / CLOCKS_PER_SEC << "s"
          << endl;
-    cout << "GPU time: " << tGpu / CLOCKS_PER_SEC << "s" << endl;
-    cout << "GPU copy to CPU time: " << tGpu2Cpu / CLOCKS_PER_SEC << "s"
-         << endl;
+    cout << "GPU copy to CPU time: "
+         << tGpu2Cpu / CLOCKS_PER_SEC << "s" << endl;
     cv::merge(image_channels, image);
 
     cv::namedWindow("image", cv::WINDOW_NORMAL);

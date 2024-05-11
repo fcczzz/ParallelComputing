@@ -14,3 +14,5 @@
 /lab5/gpu
 *.pdf
 .vs/
+build/
+.vscode/

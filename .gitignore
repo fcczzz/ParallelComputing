@@ -12,6 +12,8 @@
 /lab4/mycode
 /lab5/cpu
 /lab5/gpu
+/lab6/cpu
+/lab6/gpu
 *.pdf
 .vs/
 build/

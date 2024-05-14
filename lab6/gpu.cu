@@ -95,6 +95,7 @@ int main() {
                cudaMemcpyHostToDevice);
 
     for (int i = 0; i < N; i++) {
+        if (i % 100 == 0) std::cout << i << std::endl;
         Point p = src_array[i];
         Point nxt = p;
         do {
@@ -104,8 +105,14 @@ int main() {
                 merge<<<GRID_DIM, BLOCK_DIM>>>(delta, w,
                                                step, N);
             }
+            Point sum_delta;
+            double sum_w;
+            cudaMemcpy(&sum_delta, &delta[0], sizeof(Point),
+                       cudaMemcpyDeviceToHost);
+            cudaMemcpy(&sum_w, &w[0], sizeof(double),
+                       cudaMemcpyDeviceToHost);
 
-            nxt = delta[0] * (1 / w[0]) + p;
+            nxt = sum_delta * (1 / sum_w) + p;
 
         } while (dis(p, nxt) > 0.1);
         dst_array[i] = nxt;

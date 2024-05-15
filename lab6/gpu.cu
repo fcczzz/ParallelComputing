@@ -31,24 +31,24 @@ double dis(Point a, Point b) {
                 + (a.z - b.z) * (a.z - b.z));
 }
 
-__device__ double Kernel(double x, double h) {
+__device__ double Kernel(double x) {
     //高斯核函数
     // return exp(-x * x / (2 * h * h)) / (sqrt(2 * M_PI) *
     // h);
-    return exp(-x * x / (2 * h * h));
+    return exp(-x / (2 * h * h));
 }
 __global__ void init_delta(Point p, Point *src,
                            Point *delta, double *w, int N) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < N) {
-        delta[i].x = p.x - src[i].x;
-        delta[i].y = p.y - src[i].y;
-        delta[i].z = p.z - src[i].z;
+        delta[i].x = src[i].x - p.x;
+        delta[i].y = src[i].y - p.y;
+        delta[i].z = src[i].z - p.z;
 
-        double d = sqrt(delta[i].x * delta[i].x
-                        + delta[i].y * delta[i].y
-                        + delta[i].z * delta[i].z);
-        w[i] = Kernel(d, h);
+        double d = delta[i].x * delta[i].x
+                   + delta[i].y * delta[i].y
+                   + delta[i].z * delta[i].z;
+        w[i] = Kernel(d);
         delta[i].x *= w[i];
         delta[i].y *= w[i];
         delta[i].z *= w[i];
@@ -57,7 +57,8 @@ __global__ void init_delta(Point p, Point *src,
 __global__ void merge(Point *delta, double *w, int step,
                       int N) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i + step < N && (i & step) == 0) {
+    if (i + step < N && (i & step) == 0
+        && (i & (step - 1)) == 0) {
         // merge delta[i] and delta[i + step]
         delta[i].x += delta[i + step].x;
         delta[i].y += delta[i + step].y;
@@ -95,10 +96,14 @@ int main() {
                cudaMemcpyHostToDevice);
 
     for (int i = 0; i < N; i++) {
-        if (i % 100 == 0) std::cout << i << std::endl;
         Point p = src_array[i];
+        if (i % 100 == 0) {
+            std::cout << i << " " << i / m << " " << i % m
+                      << std::endl;
+        }
         Point nxt = p;
         do {
+            p = nxt;
             init_delta<<<GRID_DIM, BLOCK_DIM>>>(
                 p, src, delta, w, N);
             for (int step = 1; step < N; step <<= 1) {

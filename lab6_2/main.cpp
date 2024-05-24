@@ -35,18 +35,16 @@ struct MLP {
 
     void backward(Mat &input, Mat &z1, Mat &a1, Mat &z2,
                   Mat &a2, Mat &label) {
-        Mat delta1 = (a2 - label) * z2.softmax_();
-        Mat delta2 = W2.T() * delta1 * z1.relu_();
+        Mat delta2 = (a2 - label).mult(z2.softmax_());
+        Mat delta1 = W2.T() * delta2.mult(z1.relu_());
 
-        Mat dW2 = delta1 * a1.T();
-        Mat dW1 = delta2 * input.T();
-        Mat db2 = delta1.sum();
-        Mat db1 = delta2.sum();
+        Mat dW2 = a1.T() * delta2;
+        Mat dW1 = input.T() * delta1;
 
         W1 = W1 - dW1 * lr;
         W2 = W2 - dW2 * lr;
-        b1 = b1 - db1 * lr;
-        b2 = b2 - db2 * lr;
+        b1 = b1 - delta1 * lr;
+        b2 = b2 - delta2 * lr;
     }
 
     std::pair<double, double>
@@ -108,8 +106,11 @@ std::vector<int> test(std::vector<mnist_data> &data) {
     return res;
 }
 int main() {
+    std::cout << "start" << std::endl;
     std::vector<mnist_data> train_data =
         input("./data/train.csv", true);
+    std::cout << "train_data.size()" << train_data.size()
+              << std::endl;
     std::vector<mnist_data> test_data =
         input("./data/test.csv", false);
     train(train_data, 50);

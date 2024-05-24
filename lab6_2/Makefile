@@ -1,2 +1,2 @@
 all:
-	nvcc *.cu -o code `pkg-config --cflags --libs opencv4`
+	g++ *.cpp -o mlp `pkg-config --cflags --libs opencv4` -O3 -g

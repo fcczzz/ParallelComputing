@@ -3,6 +3,7 @@
 struct Mat {
     int n, m;
     double *a;
+    double &operator()(int i, int j) const;
     void random_init(int n, int m);
     void zero_init(int n, int m);
     Mat();
@@ -20,8 +21,10 @@ struct Mat {
     Mat softmax();  // softmax函数
     Mat softmax_(); // softmax函数的导数
     Mat T();        //转置
-    Mat sum();      //根据行求和
+    double sum();      
+
+    Mat mult(const Mat &_); //矩阵对应元素相乘
 };
 
-double Loss(Mat &y, Mat &y_hat);
-double Accuracy(Mat &y, Mat &y_hat);
+double Loss(const Mat &y, const Mat &y_hat);
+double Accuracy(const Mat &y, const Mat &y_hat);

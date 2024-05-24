@@ -1,0 +1,28 @@
+[
+  {
+    "arguments": [
+      "/usr/local/cuda/bin/nvcc",
+      "-c",
+      "-I/usr/include/opencv4",
+      "-o",
+      "code",
+      "main.cu"
+    ],
+    "directory": "/mnt/c/Users/FCZ/code/ParallelComputing/lab6_2",
+    "file": "/mnt/c/Users/FCZ/code/ParallelComputing/lab6_2/main.cu",
+    "output": "/mnt/c/Users/FCZ/code/ParallelComputing/lab6_2/code"
+  },
+  {
+    "arguments": [
+      "/usr/local/cuda/bin/nvcc",
+      "-c",
+      "-I/usr/include/opencv4",
+      "-o",
+      "code",
+      "mnist.cu"
+    ],
+    "directory": "/mnt/c/Users/FCZ/code/ParallelComputing/lab6_2",
+    "file": "/mnt/c/Users/FCZ/code/ParallelComputing/lab6_2/mnist.cu",
+    "output": "/mnt/c/Users/FCZ/code/ParallelComputing/lab6_2/code"
+  }
+]

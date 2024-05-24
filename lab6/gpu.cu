@@ -70,11 +70,11 @@ int main() {
     cv::Mat image = cv::imread("input.jpg");
     cv::Mat dst_image = image.clone();
 
-    int GRID_DIM = 1024;
-    int BLOCK_DIM = 1024;
-
     int n = image.size().height, m = image.size().width;
     int N = n * m;
+
+    int BLOCK_DIM = 1024;
+    int GRID_DIM = N / BLOCK_DIM + 1;
 
     Point *src_array = new Point[N];
     Point *dst_array = new Point[N];
@@ -95,10 +95,12 @@ int main() {
     cudaMemcpy(src, src_array, N * sizeof(Point),
                cudaMemcpyHostToDevice);
 
+    double t_sum = 0;
     for (int i = 0; i < N; i++) {
         Point p = src_array[i];
         if (i % 100 == 0) {
             std::cout << i << " " << i / m << " " << i % m
+                      << " " << t_sum / CLOCKS_PER_SEC
                       << std::endl;
         }
         Point nxt = p;
@@ -106,10 +108,15 @@ int main() {
             p = nxt;
             init_delta<<<GRID_DIM, BLOCK_DIM>>>(
                 p, src, delta, w, N);
+            cudaDeviceSynchronize();
+            double t0 = clock();
             for (int step = 1; step < N; step <<= 1) {
                 merge<<<GRID_DIM, BLOCK_DIM>>>(delta, w,
                                                step, N);
             }
+            cudaDeviceSynchronize();
+            double t1 = clock();
+            t_sum += t1 - t0;
             Point sum_delta;
             double sum_w;
             cudaMemcpy(&sum_delta, &delta[0], sizeof(Point),

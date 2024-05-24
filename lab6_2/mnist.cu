@@ -36,3 +36,12 @@ std::vector<mnist_data> input(std::string filename,
     }
     return data;
 }
+
+void output(std::string filename, std::vector<int> res) {
+    std::ofstream file(filename);
+    file << "ImageId,Label\n";
+    for (int i = 0; i < (int)res.size(); i++) {
+        file << i + 1 << "," << res[i] << "\n";
+    }
+    file.close();
+}

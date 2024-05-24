@@ -6,3 +6,4 @@ struct mnist_data {
 };
 std::vector<mnist_data> input(std::string filename,
                               bool is_train);
+void output(std::string filename, std::vector<int> data);

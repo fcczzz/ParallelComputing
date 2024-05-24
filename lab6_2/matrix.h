@@ -5,6 +5,11 @@ struct Mat {
     double *a;
     void random_init(int n, int m);
     void zero_init(int n, int m);
+    Mat();
+    Mat(Mat &&_);
+    Mat(const Mat &_);
+    Mat operator=(Mat &&_);
+    Mat operator=(const Mat &_);
     ~Mat();
     Mat operator*(const Mat &_);
     Mat operator*(const double &_);
@@ -17,3 +22,6 @@ struct Mat {
     Mat T();        //转置
     Mat sum();      //根据行求和
 };
+
+double Loss(Mat &y, Mat &y_hat);
+double Accuracy(Mat &y, Mat &y_hat);

@@ -13,9 +13,10 @@
 /lab4/mycode
 /lab5/cpu
 /lab5/gpu
-/lab6/cpu
-/lab6/gpu
-/lab6_2/mlp
+/lab6_meanshift/cpu
+/lab6_meanshift/gpu
+/lab6_mlp_cpu/mlp
+/lab6_mlp_gpu/mlp
 *.pdf
 .vs/
 build/

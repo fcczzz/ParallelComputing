@@ -23,7 +23,6 @@ struct Mat {
     Mat softmax_() const; // softmax函数的导数
     Mat T() const;        //转置
     double sum() const;
-
     Mat mult(const Mat &_) const; //矩阵对应元素相乘
 
     void print() const {

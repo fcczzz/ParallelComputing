@@ -23,7 +23,7 @@ std::vector<mnist_data> input(std::string filename,
         }
         int index = 0;
         while (getline(stream, s, ',')) {
-            tmp.a[index] = (unsigned char)std::stoi(s);
+            tmp.a[index++] = (unsigned char)std::stoi(s);
         }
         data.push_back(tmp);
     }

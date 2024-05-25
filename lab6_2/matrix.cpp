@@ -1,14 +1,18 @@
 #include "matrix.h"
+#include <random>
 
 double &Mat::operator()(int i, int j) const {
     return a[i * m + j];
 }
-void Mat::random_init(int N, int M) {
+std::mt19937 rng(std::chrono::steady_clock::now()
+                     .time_since_epoch()
+                     .count());
+void Mat::random_init(int N, int M, double loc,
+                      double scale) {
+    std::normal_distribution<double> dist(loc, scale);
     n = N, m = M;
     a = new double[n * m];
-    for (int i = 0; i < n * m; i++) {
-        a[i] = 0.5 - (double)rand() / RAND_MAX;
-    }
+    for (int i = 0; i < n * m; i++) a[i] = dist(rng);
 }
 void Mat::zero_init(int N, int M) {
     n = N, m = M;
@@ -57,7 +61,7 @@ Mat::~Mat() {
     if (a) delete[] a;
 }
 
-Mat Mat::operator*(const Mat &_) {
+Mat Mat::operator*(const Mat &_) const {
     assert(m == _.n);
     Mat res;
     res.zero_init(n, _.m);
@@ -67,7 +71,7 @@ Mat Mat::operator*(const Mat &_) {
                 res(i, j) += (*this)(i, k) * _(k, j);
     return res;
 }
-Mat Mat::operator*(const double &_) {
+Mat Mat::operator*(const double &_) const {
     Mat res;
     res.zero_init(n, m);
     for (int i = 0; i < n; i++)
@@ -76,7 +80,7 @@ Mat Mat::operator*(const double &_) {
     return res;
 }
 
-Mat Mat::operator+(const Mat &_) {
+Mat Mat::operator+(const Mat &_) const {
     Mat res;
     res.zero_init(n, m);
     for (int i = 0; i < n; i++)
@@ -84,7 +88,7 @@ Mat Mat::operator+(const Mat &_) {
             res(i, j) = (*this)(i, j) + _(i, j);
     return res;
 }
-Mat Mat::operator-(const Mat &_) {
+Mat Mat::operator-(const Mat &_) const {
     Mat res;
     res.zero_init(n, m);
     for (int i = 0; i < n; i++)
@@ -93,7 +97,7 @@ Mat Mat::operator-(const Mat &_) {
     return res;
 }
 
-Mat Mat::relu() {
+Mat Mat::relu() const {
     Mat res;
     res.zero_init(n, m);
     for (int i = 0; i < n; i++)
@@ -103,7 +107,7 @@ Mat Mat::relu() {
     return res;
 }
 
-Mat Mat::relu_() {
+Mat Mat::relu_() const {
     Mat res;
     res.zero_init(n, m);
     for (int i = 0; i < n; i++)
@@ -112,7 +116,7 @@ Mat Mat::relu_() {
     return res;
 }
 
-Mat Mat::T() {
+Mat Mat::T() const {
     Mat res;
     res.zero_init(m, n);
     for (int i = 0; i < n; i++)
@@ -121,63 +125,88 @@ Mat Mat::T() {
     return res;
 }
 
-Mat Mat::softmax() {
+Mat Mat::softmax() const {
     Mat res;
     res.zero_init(n, m);
-    for (int i = 0; i < n; i++) {
-        double sum = 0;
-        for (int j = 0; j < m; j++)
-            sum += exp((*this)(i, j));
-        for (int j = 0; j < m; j++)
-            res(i, j) = exp((*this)(i, j)) / sum;
+    assert(n == 1);
+    double Max = a[0], sum = 0;
+    for (int i = 0; i < m; i++)
+        Max = std::max(Max, (*this)(0, i));
+    for (int i = 0; i < m; i++)
+        sum += exp((*this)(0, i) - Max);
+
+    for (int i = 0; i < m; i++) {
+        res(0, i) = exp((*this)(0, i) - Max) / sum;
+        // std::cout << (*this)(0, i) << " " << Max << " "
+        //           << sum << " " << res(0, i) << " "
+        //           << (res(0, i) >= 0) << " "
+        //           << (res(0, i) <= 1) << std::endl;
+        assert(res(0, i) >= 0 && res(0, i) <= 1);
     }
     return res;
 }
 
-Mat Mat::softmax_() {
+Mat Mat::softmax_() const {
     Mat res;
     res.zero_init(n, m);
-    for (int i = 0; i < n; i++) {
-        double sum = 0;
-        for (int j = 0; j < m; j++)
-            sum += exp((*this)(i, j));
-        for (int j = 0; j < m; j++)
-            res(i, j) = exp((*this)(i, j)) / sum
-                        * (1 - exp((*this)(i, j)) / sum);
+    assert(n == 1);
+    double Max = a[0], sum = 0;
+    for (int i = 0; i < m; i++)
+        Max = std::max(Max, (*this)(0, i));
+    for (int i = 0; i < m; i++)
+        sum += exp((*this)(0, i) - Max);
+    for (int i = 0; i < m; i++) {
+        double x = exp((*this)(0, i) - Max) / sum;
+        res(0, i) = x * (1 - x);
+        // std::cout << (*this)(0, i) << " " << Max << " "
+        //           << sum << " " << res(0, i) << " "
+        //           << (res(0, i) >= 0) << " "
+        //           << (res(0, i) <= 1) << std::endl;
+        assert(res(0, i) >= 0 && res(0, i) <= 1);
     }
     return res;
 }
 
-double Mat::sum() { //根据行求和
+double Mat::sum() const { //根据行求和
     double sum = 0;
     for (int i = 0; i < n; i++)
         for (int j = 0; j < m; j++) sum += (*this)(i, j);
     return sum;
 }
 
-Mat Mat::mult(const Mat &_) {
+Mat Mat::mult(const Mat &_) const {
     Mat res;
     res.zero_init(n, m);
+    // if (m == 10) {
+    //     puts("---------");
+    //     for (int i = 0; i < m; i++)
+    //         printf("%lf ", (*this)(0, i));
+    //     puts("");
+    //     for (int i = 0; i < m; i++) printf("%lf ", _(0,
+    //     i)); puts(""); puts("---------");
+    // }
     for (int i = 0; i < n; i++)
-        for (int j = 0; j < m; j++)
+        for (int j = 0; j < m; j++) {
             res(i, j) = (*this)(i, j) * _(i, j);
+        }
     return res;
 }
 
 double Accuracy(const Mat &a, const Mat &b) {
-    // a,b are n*1 matrix
-    int n = a.n;
-    int cnt = 0;
-    for (int i = 0; i < n; i++)
-        if (a(i, 0) == b(i, 0)) cnt++;
-    return (double)cnt / n;
+    // a,b are 1*n matrix
+    int Maxa = 0, Maxb = 0;
+    // a.print(), b.print();
+    for (int i = 0; i < a.m; i++) {
+        if (a(0, i) > a(0, Maxa)) Maxa = i;
+        if (b(0, i) > b(0, Maxb)) Maxb = i;
+    }
+    return Maxa == Maxb;
 }
 
 double Loss(const Mat &a, const Mat &b) {
-    // a,b are n*1 matrix
-    int n = a.n;
     double loss = 0;
-    for (int i = 0; i < n; i++)
-        loss -= b(i, 0) * log(a(i, 0));
+    for (int i = 0; i < a.m; i++) {
+        loss += -b(0, i) * log(a(0, i));
+    }
     return loss;
 }

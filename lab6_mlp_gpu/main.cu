@@ -1,4 +1,5 @@
 #include <bits/stdc++.h>
+#include <ctime>
 #include <vector>
 #include "mnist.h"
 #include "matrix.h"
@@ -72,23 +73,44 @@ void train(std::vector<mnist_data> &data, int epoch) {
     double best_accuracy = 0;
     for (int i = 0; i < epoch; i++) {
         std::vector<double> loss, accuracy;
-        int t = 0;
+        double st0 = 0, st1 = 0;
         for (auto &d : data) {
+            double t0 = clock();
+            static double *d_input = new double[784];
+            static double *d_label = new double[10];
+            for (int i = 0; i < 784; i++)
+                d_input[i] = d.a[i] / 255.0;
+            for (int i = 0; i < 10; i++) d_label[i] = 0;
+            d_label[d.label] = 1;
+
             Mat input, label;
             input.zero_init(1, 784);
-            for (int i = 0; i < 784; i++)
-                input.a[i] = d.a[i] / 255.0;
-
-            // input.print();
-
             label.zero_init(1, 10);
-            label.a[d.label] = 1;
+
+            cudaMemcpy(input.a, d_input,
+                       784 * sizeof(double),
+                       cudaMemcpyHostToDevice);
+
+            cudaMemcpy(label.a, d_label,
+                       10 * sizeof(double),
+                       cudaMemcpyHostToDevice);
+
+            cudaDeviceSynchronize();
+            double t1 = clock();
             auto res = net.step(input, label);
+            cudaDeviceSynchronize();
+            double t2 = clock();
             loss.push_back(res.first);
             accuracy.push_back(res.second);
-            // std::cout << res.first << " " << res.second
-            //           << std::endl;
-            // if (++t == 100) break;
+
+            st0 += t1 - t0;
+            st1 += t2 - t1;
+
+            if (loss.size() % 100 == 0) {
+                printf("%d %lf %lf\n", (int)loss.size(),
+                       st0 / CLOCKS_PER_SEC,
+                       st1 / CLOCKS_PER_SEC);
+            }
         }
         double average_accuracy =
             std::accumulate(accuracy.begin(),
@@ -108,15 +130,23 @@ std::vector<int> test(std::vector<mnist_data> &data) {
     for (auto &d : data) {
         Mat input;
         input.zero_init(1, 784);
+
+        static double *d_input = new double[784];
         for (int i = 0; i < 784; i++)
-            input.a[i] = d.a[i] / 255.0;
+            d_input[i] = d.a[i] / 255.0;
+        cudaMemcpy(input.a, d_input, 784 * sizeof(double),
+                   cudaMemcpyHostToDevice);
 
         Mat z1, a1, z2, a2;
         ans.forward(input, z1, a1, z2, a2);
 
+        static double *a2_host = new double[10];
+        cudaMemcpy(a2_host, a2.a, 10 * sizeof(double),
+                   cudaMemcpyDeviceToHost);
+
         int predict = 0;
         for (int i = 0; i < 10; i++) {
-            if (a2.a[i] > a2.a[predict]) predict = i;
+            if (a2_host[i] > a2_host[predict]) predict = i;
         }
         res.push_back(predict);
     }

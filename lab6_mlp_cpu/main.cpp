@@ -1,4 +1,5 @@
 #include <bits/stdc++.h>
+#include <ctime>
 #include <vector>
 #include "mnist.h"
 #include "matrix.h"
@@ -70,6 +71,7 @@ void train(std::vector<mnist_data> &data, int epoch) {
     net.init(784, 256, 10, 0.01);
     ans = net;
     double best_accuracy = 0;
+    double t = clock();
     for (int i = 0; i < epoch; i++) {
         std::vector<double> loss, accuracy;
         int t = 0;
@@ -94,7 +96,8 @@ void train(std::vector<mnist_data> &data, int epoch) {
             std::accumulate(accuracy.begin(),
                             accuracy.end(), 0.0)
             / accuracy.size();
-        std::cout << i << " " << average_accuracy
+        std::cout << i << " " << average_accuracy << " "
+                  << 1.0 * (clock() - t) / CLOCKS_PER_SEC
                   << std::endl;
         if (average_accuracy > best_accuracy) {
             best_accuracy = average_accuracy;

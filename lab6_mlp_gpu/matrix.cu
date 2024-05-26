@@ -228,8 +228,8 @@ __global__ void Accuracy_kernel(double *a, double *b, int n,
 double Accuracy(const Mat &a, const Mat &b) {
     // a,b are 1*n matrix
 
-    static int *c;
-    cudaMalloc(&c, sizeof(int));
+    static int *c = nullptr;
+    if (c == nullptr) cudaMalloc(&c, sizeof(int));
     Accuracy_kernel<<<1, 1>>>(a.a, b.a, a.m, c);
     int host_c;
     cudaMemcpy(&host_c, c, sizeof(int),
@@ -240,16 +240,16 @@ double Accuracy(const Mat &a, const Mat &b) {
 
 __global__ void Loss_kernel(double *a, double *b,
                             double *loss, int n) {
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i < n) { *loss += b[i] * log(a[i]); }
+    *loss = 0;
+    for (int i = 0; i < n; i++) {
+        *loss += a[i] * log(b[i]);
+    }
 }
 
 double Loss(const Mat &a, const Mat &b) {
-    static double *loss;
-    cudaMalloc(&loss, sizeof(double));
-    cudaMemset(loss, 0, sizeof(double));
-    Loss_kernel<<<(a.n + 1023) / 1024, 1024>>>(a.a, b.a,
-                                               loss, a.n);
+    static double *loss = nullptr;
+    if (loss == nullptr) cudaMalloc(&loss, sizeof(double));
+    Loss_kernel<<<1, 1>>>(a.a, b.a, loss, a.m);
     double host_loss;
     cudaMemcpy(&host_loss, loss, sizeof(double),
                cudaMemcpyDeviceToHost);

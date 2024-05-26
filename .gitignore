@@ -17,6 +17,8 @@
 /lab6_meanshift/gpu
 /lab6_mlp_cpu/mlp
 /lab6_mlp_gpu/mlp
+/lab6_report/*
+!/lab6_report/report.tex
 *.pdf
 .vs/
 build/

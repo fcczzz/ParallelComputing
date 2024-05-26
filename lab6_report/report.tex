@@ -1,0 +1,70 @@
+\documentclass{ctexart}
+\usepackage{babel}
+\usepackage{anyfontsize}
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{floatrow}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{enumitem}
+\usepackage{longtable}
+\usepackage{listings}
+\usepackage{xcolor}
+\definecolor{teal}{RGB}{0,128,128}
+\setlist[itemize]{noitemsep}
+\lstset{
+    basicstyle          =   \sffamily,          % 基本代码风格
+    keywordstyle        =   \bfseries,          % 关键字风格
+    commentstyle        =   \rmfamily\itshape,  % 注释的风格，斜体
+    stringstyle         =   \ttfamily,  % 字符串风格
+    flexiblecolumns,                % 别问为什么，加上这个
+    numbers             =   left,   % 行号的位置在左边
+    showspaces          =   false,  % 是否显示空格，显示了有点乱，所以不现实了
+    numberstyle         =   \zihao{-5}\ttfamily,    % 行号的样式，小五号，tt等宽字体
+    showstringspaces    =   false,
+    captionpos          =   t,      % 这段代码的名字所呈现的位置，t指的是top上面
+    frame               =   lrtb,   % 显示边框
+}
+
+\lstdefinestyle{Python}{
+    language        =   Python, % 语言选Python
+    basicstyle      =   \zihao{-5}\ttfamily,
+    numberstyle     =   \zihao{-5}\ttfamily,
+    keywordstyle    =   \color{blue},
+    keywordstyle    =   [2] \color{teal},
+    stringstyle     =   \color{magenta},
+    commentstyle    =   \color{red}\ttfamily,
+    breaklines      =   true,   % 自动换行，建议不要写太长的行
+    columns         =   fixed,  % 如果不加这一句，字间距就不固定，很丑，必须加
+    basewidth       =   0.5em,
+}
+
+\title{\textbf{并行计算大作业课程报告}}
+\author{方驰正 PB21000163}
+
+\begin{document}
+\begin{sloppypar}
+
+\maketitle
+
+% \tableofcontents
+% \newpage
+
+% \ctexset{abstractname=摘要}
+% \begin{abstract}
+
+% \end{abstract}
+
+\sectino{摘要}
+
+
+\ctexset{bibname=参考资料}
+\begin{thebibliography}{100}
+      \bibitem{ref1}\href{https://www.kaggle.com/code/ambrosm/pss3e20-eda-which-makes-sense}{PSS3E20 EDA which makes sense}
+      \bibitem{ref2}\href{https://www.kaggle.com/code/kacperrabczewski/rwanda-co2-step-by-step-guide}{Rwanda CO2: Step by step guide}
+      \bibitem{ref3}\href{https://www.kaggle.com/code/yaaangzhou/pg-s3-e20-eda-modeling}{[PG S3 E20] EDA + Modeling}
+      \bibitem{ref4}\href{https://www.kaggle.com/code/dmitryuarov/ps3e20-rwanda-emission-advanced-fe-20-88}{PS3E20 | Rwanda emission | Advanced FE | 20.88}
+\end{thebibliography}
+
+\end{sloppypar}
+\end{document}

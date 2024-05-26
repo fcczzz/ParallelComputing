@@ -4,25 +4,73 @@
       "/usr/local/cuda/bin/nvcc",
       "-c",
       "-I/usr/include/opencv4",
+      "-g",
+      "-O3",
       "-o",
-      "code",
-      "main.cu"
+      "mlp",
+      "mnist.cpp"
     ],
-    "directory": "/mnt/c/Users/FCZ/code/ParallelComputing/lab6_2",
-    "file": "/mnt/c/Users/FCZ/code/ParallelComputing/lab6_2/main.cu",
-    "output": "/mnt/c/Users/FCZ/code/ParallelComputing/lab6_2/code"
+    "directory": "/mnt/c/Users/FCZ/code/ParallelComputing/lab6_mlp_gpu",
+    "file": "/mnt/c/Users/FCZ/code/ParallelComputing/lab6_mlp_gpu/mnist.cpp",
+    "output": "/mnt/c/Users/FCZ/code/ParallelComputing/lab6_mlp_gpu/mlp"
   },
   {
     "arguments": [
       "/usr/local/cuda/bin/nvcc",
       "-c",
       "-I/usr/include/opencv4",
+      "-g",
+      "-O3",
       "-o",
-      "code",
-      "mnist.cu"
+      "mlp",
+      "main.cu"
     ],
-    "directory": "/mnt/c/Users/FCZ/code/ParallelComputing/lab6_2",
-    "file": "/mnt/c/Users/FCZ/code/ParallelComputing/lab6_2/mnist.cu",
-    "output": "/mnt/c/Users/FCZ/code/ParallelComputing/lab6_2/code"
+    "directory": "/mnt/c/Users/FCZ/code/ParallelComputing/lab6_mlp_gpu",
+    "file": "/mnt/c/Users/FCZ/code/ParallelComputing/lab6_mlp_gpu/main.cu",
+    "output": "/mnt/c/Users/FCZ/code/ParallelComputing/lab6_mlp_gpu/mlp"
+  },
+  {
+    "arguments": [
+      "/usr/local/cuda/bin/nvcc",
+      "-c",
+      "-I/usr/include/opencv4",
+      "-g",
+      "-O3",
+      "-o",
+      "mlp",
+      "matrix.cu"
+    ],
+    "directory": "/mnt/c/Users/FCZ/code/ParallelComputing/lab6_mlp_gpu",
+    "file": "/mnt/c/Users/FCZ/code/ParallelComputing/lab6_mlp_gpu/matrix.cu",
+    "output": "/mnt/c/Users/FCZ/code/ParallelComputing/lab6_mlp_gpu/mlp"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-D__CUDA_ARCH_LIST__=520",
+      "-D__NV_LEGACY_LAUNCH",
+      "-c",
+      "-x",
+      "c++",
+      "-D__NVCC__",
+      "-O3",
+      "-Wno-psabi",
+      "-I/usr/include/opencv4",
+      "-I/usr/local/cuda/bin/../targets/x86_64-linux/include",
+      "-D__CUDACC_VER_MAJOR__=12",
+      "-D__CUDACC_VER_MINOR__=4",
+      "-D__CUDACC_VER_BUILD__=99",
+      "-D__CUDA_API_VER_MAJOR__=12",
+      "-D__CUDA_API_VER_MINOR__=4",
+      "-D__NVCC_DIAG_PRAGMA_SUPPORT__=1",
+      "-m64",
+      "-g",
+      "-o",
+      "/tmp/tmpxft_000c8410_00000000-13_mnist.o",
+      "mnist.cpp"
+    ],
+    "directory": "/mnt/c/Users/FCZ/code/ParallelComputing/lab6_mlp_gpu",
+    "file": "/mnt/c/Users/FCZ/code/ParallelComputing/lab6_mlp_gpu/mnist.cpp",
+    "output": "/tmp/tmpxft_000c8410_00000000-13_mnist.o"
   }
 ]

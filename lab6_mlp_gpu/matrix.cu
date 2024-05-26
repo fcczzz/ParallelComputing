@@ -53,9 +53,9 @@ __global__ void mult_mat_kernel(double *a, double *b,
     }
 }
 
-double &Mat::operator()(int i, int j) const {
-    return a[i * m + j];
-}
+// double &Mat::operator()(int i, int j) const {
+//     return a[i * m + j];
+// }
 std::mt19937 rng(std::chrono::steady_clock::now()
                      .time_since_epoch()
                      .count());
@@ -81,6 +81,11 @@ void Mat::zero_init(int N, int M) {
 Mat::Mat() {
     n = m = 0;
     a = nullptr;
+}
+
+Mat::Mat(int n, int m) : n(n), m(m) {
+    cudaMalloc(&a, sizeof(double) * n * m);
+    cudaMemset(a, 0, sizeof(double) * n * m);
 }
 
 Mat::Mat(Mat &&_) {
@@ -117,71 +122,53 @@ Mat::~Mat() {
     if (a) cudaFree(a);
 }
 
-Mat Mat::operator*(const Mat &_) const {
-    assert(m == _.n);
-    Mat res;
-    res.zero_init(n, _.m);
-    static double sum_t = 0;
-    static int cnt = 0;
-    cudaDeviceSynchronize();
-    double t0 = clock();
-
-    mult_mat_kernel<<<(n * _.m + 1023) / 1024, 1024>>>(
-        a, _.a, res.a, n, m, _.m);
-
-    cudaDeviceSynchronize();
-    double t1 = clock();
-    sum_t += t1 - t0;
-    if (++cnt % 1000 == 0)
-        std::cout << 1.0 * sum_t / CLOCKS_PER_SEC
-                  << std::endl;
-    return res;
+void Mult_mat(const Mat &a, const Mat &b, Mat &c) {
+    assert(a.m == b.n);
+    assert(a.n == c.n);
+    assert(b.m == c.m);
+    mult_mat_kernel<<<(a.n * b.m + 1023) / 1024, 1024>>>(
+        a.a, b.a, c.a, a.n, a.m, b.m);
 }
-Mat Mat::operator*(const double &_) const {
-    Mat res;
-    res.zero_init(n, m);
-    mult_num_kernel<<<(n * m + 1023) / 1024, 1024>>>(
-        a, _, res.a, n * m);
-    return res;
+void Mult_num(const Mat &a, double b, Mat &c) {
+    assert(a.n == c.n);
+    assert(a.m == c.m);
+    mult_num_kernel<<<(a.n * a.m + 1023) / 1024, 1024>>>(
+        a.a, b, c.a, a.n * a.m);
 }
 
-Mat Mat::operator+(const Mat &_) const {
-    Mat res;
-    res.zero_init(n, m);
-    add_kernel<<<(n * m + 1023) / 1024, 1024>>>(
-        a, _.a, res.a, n * m);
-    return res;
-}
-Mat Mat::operator-(const Mat &_) const {
-    Mat res;
-    res.zero_init(n, m);
-    sub_kernel<<<(n * m + 1023) / 1024, 1024>>>(
-        a, _.a, res.a, n * m);
-    return res;
+void Add_mat(const Mat &a, const Mat &b, Mat &c) {
+    assert(a.n == c.n);
+    assert(a.m == c.m);
+    add_kernel<<<(a.n * a.m + 1023) / 1024, 1024>>>(
+        a.a, b.a, c.a, a.n * a.m);
 }
 
-Mat Mat::relu() const {
-    Mat res;
-    res.zero_init(n, m);
-    relu_kernel<<<(n * m + 1023) / 1024, 1024>>>(a, res.a,
-                                                 n * m);
-    return res;
+void Sub_mat(const Mat &a, const Mat &b, Mat &c) {
+    assert(a.n == c.n);
+    assert(a.m == c.m);
+    sub_kernel<<<(a.n * a.m + 1023) / 1024, 1024>>>(
+        a.a, b.a, c.a, a.n * a.m);
 }
 
-Mat Mat::relu_() const {
-    Mat res;
-    res.zero_init(n, m);
-    relu__kernel<<<(n * m + 1023) / 1024, 1024>>>(a, res.a,
-                                                  n * m);
-    return res;
+void Relu(const Mat &a, Mat &c) {
+    assert(a.n == c.n);
+    assert(a.m == c.m);
+    relu_kernel<<<(a.n * a.m + 1023) / 1024, 1024>>>(
+        a.a, c.a, a.n * a.m);
 }
 
-Mat Mat::T() const {
-    Mat res;
-    res.zero_init(m, n);
-    T_kernel<<<(n * m + 1023) / 1024, 1024>>>(a, res.a, n,
-                                              m);
-    return res;
+void Relu_(const Mat &a, Mat &c) {
+    assert(a.n == c.n);
+    assert(a.m == c.m);
+    relu__kernel<<<(a.n * a.m + 1023) / 1024, 1024>>>(
+        a.a, c.a, a.n * a.m);
+}
+
+void T(const Mat &a, Mat &c) {
+    assert(a.n == c.m);
+    assert(a.m == c.n);
+    T_kernel<<<(a.n * a.m + 1023) / 1024, 1024>>>(a.a, c.a,
+                                                  a.n, a.m);
 }
 
 __global__ void softmax_kernel(double *a, double *c,
@@ -208,79 +195,63 @@ __global__ void softmax__kernel(double *a, double *c,
     }
 }
 
-Mat Mat::softmax() const {
-    Mat res;
-    res.zero_init(n, m);
-    softmax_kernel<<<1, 1>>>(a, res.a, m);
-    return res;
+void Softmax(const Mat &a, Mat &c) {
+    assert(a.n == c.n);
+    assert(a.m == c.m);
+    softmax_kernel<<<1, 1>>>(a.a, c.a, a.m);
 }
 
-Mat Mat::softmax_() const {
-    static double st = 0;
-    static int cnt = 0;
-    cudaDeviceSynchronize();
-    double t0 = clock();
-    Mat res;
-    res.zero_init(n, m);
-
-    softmax__kernel<<<1, 1>>>(a, res.a, m);
-
-    cudaDeviceSynchronize();
-    double t1 = clock();
-    st += t1 - t0;
-    if (++cnt % 1000 == 0)
-        std::cout << "softmax_:"
-                  << 1.0 * st / CLOCKS_PER_SEC << std::endl;
-
-    return res;
+void Softmax_(const Mat &a, Mat &c) {
+    assert(a.n == c.n);
+    assert(a.m == c.m);
+    softmax__kernel<<<1, 1>>>(a.a, c.a, a.m);
+}
+void Mult(const Mat &a, const Mat &b, Mat &c) {
+    assert(a.n == c.n);
+    assert(a.m == c.m);
+    assert(b.n == c.n);
+    assert(b.m == c.m);
+    mult_kernel<<<(a.n * a.m + 1023) / 1024, 1024>>>(
+        a.a, b.a, c.a, a.n * a.m);
 }
 
-double Mat::sum() const { //根据行求和
-    double sum = 0;
-    for (int i = 0; i < n; i++)
-        for (int j = 0; j < m; j++) sum += (*this)(i, j);
-    return sum;
-}
-
-Mat Mat::mult(const Mat &_) const {
-    Mat res;
-    res.zero_init(n, m);
-    mult_kernel<<<(n * m + 1023) / 1024, 1024>>>(
-        a, _.a, res.a, n * m);
-    return res;
+__global__ void Accuracy_kernel(double *a, double *b, int n,
+                                int *c) {
+    int Maxa = 0, Maxb = 0;
+    for (int i = 0; i < n; i++) {
+        if (a[i] > a[Maxa]) Maxa = i;
+        if (b[i] > b[Maxb]) Maxb = i;
+    }
+    *c = Maxa == Maxb;
 }
 
 double Accuracy(const Mat &a, const Mat &b) {
     // a,b are 1*n matrix
-    int Maxa = 0, Maxb = 0;
-    // a.print(), b.print();
-    double *host_a = new double[a.m];
-    double *host_b = new double[b.m];
-    cudaMemcpy(host_a, a.a, sizeof(double) * a.m,
-               cudaMemcpyDeviceToHost);
-    cudaMemcpy(host_b, b.a, sizeof(double) * b.m,
 
+    static int *c;
+    cudaMalloc(&c, sizeof(int));
+    Accuracy_kernel<<<1, 1>>>(a.a, b.a, a.m, c);
+    int host_c;
+    cudaMemcpy(&host_c, c, sizeof(int),
                cudaMemcpyDeviceToHost);
 
-    for (int i = 0; i < a.m; i++) {
-        if (host_a[i] > host_a[Maxa]) Maxa = i;
-        if (host_b[i] > host_b[Maxb]) Maxb = i;
-    }
-    return Maxa == Maxb;
+    return host_c;
+}
+
+__global__ void Loss_kernel(double *a, double *b,
+                            double *loss, int n) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < n) { *loss += b[i] * log(a[i]); }
 }
 
 double Loss(const Mat &a, const Mat &b) {
-    double loss = 0;
-    double *host_a = new double[a.m];
-    double *host_b = new double[b.m];
-
-    cudaMemcpy(host_a, a.a, sizeof(double) * a.m,
+    static double *loss;
+    cudaMalloc(&loss, sizeof(double));
+    cudaMemset(loss, 0, sizeof(double));
+    Loss_kernel<<<(a.n + 1023) / 1024, 1024>>>(a.a, b.a,
+                                               loss, a.n);
+    double host_loss;
+    cudaMemcpy(&host_loss, loss, sizeof(double),
                cudaMemcpyDeviceToHost);
-    cudaMemcpy(host_b, b.a, sizeof(double) * b.m,
-               cudaMemcpyDeviceToHost);
-
-    for (int i = 0; i < a.m; i++) {
-        loss += host_b[i] * log(host_a[i]);
-    }
-    return loss;
+    return -host_loss;
 }

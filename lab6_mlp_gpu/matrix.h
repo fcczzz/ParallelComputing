@@ -15,8 +15,8 @@ struct Mat {
     ~Mat();
 };
 
-double Loss(const Mat &y, const Mat &y_hat);
-double Accuracy(const Mat &y, const Mat &y_hat);
+void Loss(const Mat &y, const Mat &y_hat,double *loss);
+void Accuracy(const Mat &y, const Mat &y_hat,double *accuracy);
 
 // Mat operator*(const Mat &_) const;
 // Mat operator*(const double &_) const;

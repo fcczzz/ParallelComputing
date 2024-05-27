@@ -102,19 +102,18 @@ struct MLP {
         Sub_mat(b2, delta2_lr, b2);
     }
 
-    std::pair<double, double>
-    step(Mat &input, Mat &label,
+    void
+    step(Mat &input, Mat &label, double *accuracy,
+         double *loss,
          bool train = true) { // return loss and accuracy
 
         static Mat z1(1, W1.m), a1(1, W1.m);
         static Mat z2(1, W2.m), a2(1, W2.m);
         forward(input, z1, a1, z2, a2);
-
-        double loss = Loss(a2, label);
-        double accuracy = Accuracy(a2, label);
+        Loss(a2, label, loss);
+        Accuracy(a2, label, accuracy);
 
         if (train) backward(input, z1, a1, z2, a2, label);
-        return std::make_pair(loss, accuracy);
     }
 } net, ans;
 
@@ -141,33 +140,41 @@ void train(std::vector<mnist_data> &data, int epoch) {
     }
 
     net.init(784, 256, 10, 0.01);
+    std::cout << "init success" << std::endl;
     ans = net;
     double best_accuracy = -1;
+    double t = clock();
     for (int i = 0; i < epoch; i++) {
-        std::vector<double> loss, accuracy;
-        double st0 = 0;
-        for (int j = 0; j < (int)data.size(); j++) {
-            double t0 = clock();
-            auto res = net.step(inputs[j], labels[j]);
-            cudaDeviceSynchronize();
-            double t1 = clock();
-            loss.push_back(res.first);
-            accuracy.push_back(res.second);
-
-            st0 += t1 - t0;
-
-            // if (loss.size() % 100 == 0) {
-            //     printf("%d %lf %lf\n", (int)loss.size(),
-            //            st0 / CLOCKS_PER_SEC,
-            //            st1 / CLOCKS_PER_SEC);
-            // }
+        static double *loss = nullptr,
+                      *host_loss = new double[data.size()];
+        static double *accuracy = nullptr,
+                      *host_accuracy =
+                          new double[data.size()];
+        if (loss == nullptr) {
+            cudaMalloc(&loss, sizeof(double) * data.size());
+            cudaMalloc(&accuracy,
+                       sizeof(double) * data.size());
         }
-        double average_accuracy =
-            std::accumulate(accuracy.begin(),
-                            accuracy.end(), 0.0)
-            / accuracy.size();
+
+        for (int j = 0; j < (int)data.size(); j++) {
+            net.step(inputs[j], labels[j], accuracy + j,
+                     loss + j, true);
+        }
+
+        cudaMemcpy(host_accuracy, accuracy,
+                   sizeof(double) * data.size(),
+                   cudaMemcpyDeviceToHost);
+        cudaMemcpy(host_loss, loss,
+                   sizeof(double) * data.size(),
+                   cudaMemcpyDeviceToHost);
+        double average_accuracy = 0;
+        for (int j = 0; j < data.size(); j++) {
+            average_accuracy += host_accuracy[j];
+        }
+        average_accuracy /= data.size();
+        cudaDeviceSynchronize();
         std::cout << i << " " << average_accuracy << " "
-                  << 1.0 * st0 / CLOCKS_PER_SEC
+                  << 1.0 * (clock() - t) / CLOCKS_PER_SEC
                   << std::endl;
         if (average_accuracy > best_accuracy) {
             best_accuracy = average_accuracy;

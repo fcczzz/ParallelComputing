@@ -216,7 +216,7 @@ void Mult(const Mat &a, const Mat &b, Mat &c) {
 }
 
 __global__ void Accuracy_kernel(double *a, double *b, int n,
-                                int *c) {
+                                double *c) {
     int Maxa = 0, Maxb = 0;
     for (int i = 0; i < n; i++) {
         if (a[i] > a[Maxa]) Maxa = i;
@@ -225,33 +225,20 @@ __global__ void Accuracy_kernel(double *a, double *b, int n,
     *c = Maxa == Maxb;
 }
 
-double Accuracy(const Mat &a, const Mat &b) {
+void Accuracy(const Mat &a, const Mat &b,
+              double *accuracy) {
     // a,b are 1*n matrix
-
-    static int *c = nullptr;
-    if (c == nullptr) cudaMalloc(&c, sizeof(int));
-    Accuracy_kernel<<<1, 1>>>(a.a, b.a, a.m, c);
-    int host_c;
-    cudaMemcpy(&host_c, c, sizeof(int),
-               cudaMemcpyDeviceToHost);
-
-    return host_c;
+    Accuracy_kernel<<<1, 1>>>(a.a, b.a, a.m, accuracy);
 }
 
 __global__ void Loss_kernel(double *a, double *b,
                             double *loss, int n) {
     *loss = 0;
     for (int i = 0; i < n; i++) {
-        *loss += a[i] * log(b[i]);
+        *loss -= a[i] * log(b[i]);
     }
 }
 
-double Loss(const Mat &a, const Mat &b) {
-    static double *loss = nullptr;
-    if (loss == nullptr) cudaMalloc(&loss, sizeof(double));
+void Loss(const Mat &a, const Mat &b, double *loss) {
     Loss_kernel<<<1, 1>>>(a.a, b.a, loss, a.m);
-    double host_loss;
-    cudaMemcpy(&host_loss, loss, sizeof(double),
-               cudaMemcpyDeviceToHost);
-    return -host_loss;
 }

@@ -1,2 +1,2 @@
 all:
-	g++ *.cpp -o mlp `pkg-config --cflags --libs opencv4` -O3 -g
+	g++ *.cpp -o mlp `pkg-config --cflags --libs opencv4` -g

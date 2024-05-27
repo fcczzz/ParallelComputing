@@ -88,6 +88,12 @@ void train(std::vector<mnist_data> &data, int epoch) {
             auto res = net.step(input, label);
             loss.push_back(res.first);
             accuracy.push_back(res.second);
+            // if (++t % 1000 == 0) {
+            //     std::cout
+            //         << t << " "
+            //         << 1.0 * (clock() - t) / CLOCKS_PER_SEC
+            //         << std::endl;
+            // }
             // std::cout << res.first << " " << res.second
             //           << std::endl;
             // if (++t == 100) break;

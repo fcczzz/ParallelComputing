@@ -417,17 +417,17 @@ epoch:9 average_acc:0.978238 time used:135.449s
     \caption{并行版本的kaggle提交结果}
 \end{figure}
 可以看到我们的并行方法在达到9.5倍加速比的同时，准确率也有略微提升，达到了96.135\%。
-\section{实验结果}
+\section{总结}
+在本次实验中，我们使用了mnist数据集，训练了一个mlp自动感知机，并使用其预测了测试集，将结果提交至kaggle上的手写数字识别项目。分别实现了cpu串行版本和gpu并行版本，并对gpu并行版本进行优化，最终达到了96.1\%的准确率，以及相比于cpu版本的9.5倍的加速比。
 
-
-
-\ctexset{bibname=参考资料}
-\begin{thebibliography}{100}
-      \bibitem{ref1}\href{https://www.kaggle.com/code/ambrosm/pss3e20-eda-which-makes-sense}{PSS3E20 EDA which makes sense}
-      \bibitem{ref2}\href{https://www.kaggle.com/code/kacperrabczewski/rwanda-co2-step-by-step-guide}{Rwanda CO2: Step by step guide}
-      \bibitem{ref3}\href{https://www.kaggle.com/code/yaaangzhou/pg-s3-e20-eda-modeling}{[PG S3 E20] EDA + Modeling}
-      \bibitem{ref4}\href{https://www.kaggle.com/code/dmitryuarov/ps3e20-rwanda-emission-advanced-fe-20-88}{PS3E20 | Rwanda emission | Advanced FE | 20.88}
-\end{thebibliography}
+通过本次实验，我学会了如何使用cuda进行并行计算，以及如何使用nsight调试并优化cuda程序。
+% \ctexset{bibname=参考资料}
+% \begin{thebibliography}{100}
+%       \bibitem{ref1}\href{https://www.kaggle.com/code/ambrosm/pss3e20-eda-which-makes-sense}{PSS3E20 EDA which makes sense}
+%       \bibitem{ref2}\href{https://www.kaggle.com/code/kacperrabczewski/rwanda-co2-step-by-step-guide}{Rwanda CO2: Step by step guide}
+%       \bibitem{ref3}\href{https://www.kaggle.com/code/yaaangzhou/pg-s3-e20-eda-modeling}{[PG S3 E20] EDA + Modeling}
+%       \bibitem{ref4}\href{https://www.kaggle.com/code/dmitryuarov/ps3e20-rwanda-emission-advanced-fe-20-88}{PS3E20 | Rwanda emission | Advanced FE | 20.88}
+% \end{thebibliography}
 
 \end{sloppypar}
 \end{document}

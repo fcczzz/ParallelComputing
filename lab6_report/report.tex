@@ -10,20 +10,26 @@
 \usepackage{longtable}
 \usepackage{listings}
 \usepackage{xcolor}
+\usepackage{dirtree}
 \definecolor{teal}{RGB}{0,128,128}
 \setlist[itemize]{noitemsep}
 \lstset{
-    basicstyle          =   \sffamily,          % 基本代码风格
-    keywordstyle        =   \bfseries,          % 关键字风格
-    commentstyle        =   \rmfamily\itshape,  % 注释的风格，斜体
-    stringstyle         =   \ttfamily,  % 字符串风格
-    flexiblecolumns,                % 别问为什么，加上这个
-    numbers             =   left,   % 行号的位置在左边
-    showspaces          =   false,  % 是否显示空格，显示了有点乱，所以不现实了
-    numberstyle         =   \zihao{-5}\ttfamily,    % 行号的样式，小五号，tt等宽字体
-    showstringspaces    =   false,
-    captionpos          =   t,      % 这段代码的名字所呈现的位置，t指的是top上面
-    frame               =   lrtb,   % 显示边框
+    language=C++,
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{red},
+    numbers=left,
+    numberstyle=\tiny,
+    stepnumber=1,
+    numbersep=5pt,
+    backgroundcolor=\color{lightgray},
+    tabsize=2,
+    showspaces=false,
+    showstringspaces=false,
+    frame=single,
+    breaklines=true,
+    postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space},
 }
 
 \lstdefinestyle{Python}{
@@ -55,7 +61,265 @@
 
 % \end{abstract}
 
-\sectino{摘要}
+\section{实验目的}
+在本次实验中，我们使用MNIST手写数字数据集，训练了一个mlp自动感知机，并使用其预测了测试集，将结果提交至kaggle上的手写数字识别项目。分别实现了cpu串行版本和gpu并行版本，并对gpu并行版本进行优化，最终达到了96.1\%的准确率，以及相比于cpu版本的8倍的加速比。
+
+\section{实验环境}
+\begin{itemize}
+    \item 操作系统：WSL2 Ubuntu 22.04
+    \item 编程语言：C++, cuda
+    \item 编译器：g++ 11.4.0
+    \item cuda版本：12.4
+    \item GPU：NVIDIA GeForce RTX 4060 Laptop
+\end{itemize}
+
+\section{算法设计和实现}
+以下为主要的文件目录结构：
+\dirtree{%
+.1 {/} .
+.2 {/data} .
+.3 {train.csv} .
+.3 {test.csv} .
+.2 {/output} .
+.3 {submission.csv} .
+.2 {main.cpp} .
+.2 {mnist.h} . 
+.2 {mnist.cpp} .
+.2 {matrix.h} .
+.2 {matrix.cpp} .
+.2 {Makefile} .
+}
+可以看到，核心代码主要分为三个部分，分别是mnist.h和mnist.cpp，matrix.h和matrix.cpp，以及main.cpp。其中mnist.h和mnist.cpp主要负责数据的读取和预处理，matrix.h和matrix.cpp主要负责矩阵运算，main.cpp主要负责模型的训练和预测。下面我们分别介绍这三个部分的实现。
+
+\subsection{mnist}
+这一部分为数据的读取和预处理部分。我们使用了mnist数据集，其中train.csv为训练集，test.csv为测试集。
+
+具体地，在mnist.h中的声明如下：
+\begin{lstlisting}[language=C++]
+struct mnist_data {
+    unsigned char label;
+    unsigned char a[28 * 28];
+};
+std::vector<mnist_data> input(std::string filename, bool is_train);
+void output(std::string filename, std::vector<int> data);
+\end{lstlisting}
+
+可以看到，我们定义了一个mnist\_data结构体，其中包含了一个label和一个28*28的数组，表示该数据的标签和特征。input函数用于读取数据，output函数用于输出数据。
+\subsection{matrix}
+\begin{lstlisting}[language=C++]
+struct Mat {
+    int n, m;
+    double *a;
+    double &operator()(int i, int j) const;
+    void random_init(int n, int m, double loc, double scale); //随机初始化
+    void zero_init(int n, int m);
+    Mat();
+    Mat(Mat &&_);
+    Mat(const Mat &_);
+    Mat operator=(Mat &&_);
+    Mat operator=(const Mat &_);
+    ~Mat();
+    Mat operator*(const Mat &_) const;
+    Mat operator*(const double &_) const;
+    Mat operator+(const Mat &_) const;
+    Mat operator-(const Mat &_) const;
+    Mat relu() const;                                         //激活函数
+    Mat relu_() const;                                        //激活函数的导数
+    Mat softmax() const;                                      // softmax函数
+    Mat softmax_() const;                                     // softmax函数的导数
+    Mat T() const;                                            //转置
+    double sum() const;
+
+    Mat mult(const Mat &_) const; //矩阵对应元素相乘
+};
+
+double Loss(const Mat &y, const Mat &y_hat);
+double Accuracy(const Mat &y, const Mat &y_hat);
+
+\end{lstlisting}
+在这里，我们定义了一个Mat结构体，用来表示一个矩阵。同时，我们定义了一系列在mlp训练与预测中需要用到的函数，如矩阵乘法、矩阵加法、矩阵减法、激活函数、softmax函数、损失函数、准确率等。
+\subsection{mlp}
+这是整个模型的核心部分，我们使用了一个三层的mlp模型，分别为输入层、隐藏层和输出层。其中，输入层包含784个神经元，隐藏层包含256个神经元，输出层包含10个神经元。我们使用了relu作为激活函数，使用softmax作为输出层的激活函数。同时，我们使用梯度下降方法进行反向传播。在训练时，我们使用了交叉熵作为损失函数。主要相关代码如下：
+\begin{lstlisting}[language=C++]
+struct MLP {
+    Mat W1, W2, b1, b2;
+    double lr;
+
+    void forward(const Mat &input, Mat &z1, Mat &a1,
+                 Mat &z2, Mat &a2) {
+        z1 = input * W1 + b1;
+        a1 = z1.relu();
+        z2 = a1 * W2 + b2;
+        a2 = z2.softmax();
+    }
+
+    void backward(Mat &input, Mat &z1, Mat &a1, Mat &z2,
+                  Mat &a2, Mat &label) {
+        Mat delta2 = (a2 - label).mult(z2.softmax_());
+        Mat delta1 = (delta2 * W2.T()).mult(z1.relu_());
+
+        Mat dW2 = a1.T() * delta2;
+        Mat dW1 = input.T() * delta1;
+
+        W1 = W1 - dW1 * lr;
+        W2 = W2 - dW2 * lr;
+        b1 = b1 - delta1 * lr;
+        b2 = b2 - delta2 * lr;
+    }
+
+    std::pair<double, double>
+    step(Mat &input, Mat &label,
+         bool train = true) { 
+        Mat z1, a1, z2, a2;
+        forward(input, z1, a1, z2, a2);
+
+        double loss = Loss(a2, label);
+        double accuracy = Accuracy(a2, label);
+
+        if (train) backward(input, z1, a1, z2, a2, label);
+        return std::make_pair(loss, accuracy);
+    }
+} net;
+\end{lstlisting}
+可以看到，我们定义了一个MLP结构体，其中包含了W1、W2、b1、b2和lr等参数。forward函数用于前向传播，backward函数用于反向传播，step函数用于一次训练迭代。在训练时，我们使用了随机梯度下降法。
+\begin{lstlisting}[language=C++]
+void train(std::vector<mnist_data> &data, int epoch) {
+    net.init(784, 256, 10, 0.01);
+    ans = net;
+    double best_accuracy = 0;
+    double t = clock();
+    for (int i = 0; i < epoch; i++) {
+        std::vector<double> loss, accuracy;
+        int t = 0;
+        for (auto &d : data) {
+            Mat input, label;
+            input.zero_init(1, 784);
+            for (int i = 0; i < 784; i++)
+                input.a[i] = d.a[i] / 255.0;
+
+            label.zero_init(1, 10);
+            label.a[d.label] = 1;
+            auto res = net.step(input, label);
+            loss.push_back(res.first);
+            accuracy.push_back(res.second);
+        }
+        double average_accuracy =
+            std::accumulate(accuracy.begin(),
+                            accuracy.end(), 0.0)
+            / accuracy.size();
+        if (average_accuracy > best_accuracy) {
+            best_accuracy = average_accuracy;
+            ans = net;
+        }
+    }
+}
+
+std::vector<int> test(std::vector<mnist_data> &data) {
+    std::vector<int> res;
+    for (auto &d : data) {
+        Mat input;
+        input.zero_init(1, 784);
+        for (int i = 0; i < 784; i++)
+            input.a[i] = d.a[i] / 255.0;
+
+        Mat z1, a1, z2, a2;
+        ans.forward(input, z1, a1, z2, a2);
+
+        int predict = 0;
+        for (int i = 0; i < 10; i++) {
+            if (a2.a[i] > a2.a[predict]) predict = i;
+        }
+        res.push_back(predict);
+    }
+    return res;
+}
+\end{lstlisting}
+如上为训练以及测试部分的代码。
+
+可以看到，在训练时，我们将数据归一化到[0, 1]之间，并进行若干个epoch的训练。取平均准确率最高的模型作为最终的模型。为了简单起见，我们在测试时没有使用交叉验证，而是直接使用了训练集的数据进行测试。
+
+在测试时，我们将数据归一化到[0, 1]之间，然后使用训练好的模型进行预测。最终将预测结果输出到submission.csv文件中。
+
+\subsection{串行实验结果}
+编译并运行后，输出如下：
+\begin{lstlisting}
+epoch:0 average_acc:0.861167 time used:128.734s
+epoch:1 average_acc:0.925143 time used:257.458s
+epoch:2 average_acc:0.941952 time used:384.517s
+epoch:3 average_acc:0.952071 time used:510.324s
+epoch:4 average_acc:0.959524 time used:635.946s
+epoch:5 average_acc:0.964476 time used:770.660s
+epoch:6 average_acc:0.968905 time used:899.398s
+epoch:7 average_acc:0.972143 time used:1024.27s
+epoch:8 average_acc:0.975429 time used:1150.56s
+epoch:9 average_acc:0.978310 time used:1279.45s
+\end{lstlisting}
+可以看到，经过10个epoch的训练，最终的准确率为97.8\%，尚未过拟合。但是训练时间较长，达到了23分钟。将输出的测试数据提交至kaggle上，得到的准确率如下：
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{cpu_result.jpg}
+    \caption{串行版本的kaggle提交结果}
+\end{figure}
+由于训练时间较长，我们尝试并行计算。
+\section{并行实现和优化}
+可以看到，串行版本的程序的运行时间还是比较长，因此我们尝试使用cuda，在gpu上进行并行计算。
+由于主要的计算部分都在matrix.cpp中，因此我们重点的优化部分也在这里。这里，我们以矩阵乘法为例，介绍我们的优化方法。
+\begin{lstlisting}[language=C++]
+void Mat::zero_init(int N, int M) {
+    n = N, m = M;
+    a = new double[n * m];
+    memset(a, 0, sizeof(double) * n * m);
+}
+Mat::~Mat() {
+    if (a) delete[] a;
+}
+Mat Mat::operator*(const double &_) const {
+    Mat res;
+    res.zero_init(n, m);
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < m; j++)
+            res(i, j) = (*this)(i, j) * _;
+    return res;
+}
+\end{lstlisting}
+这是最原始的矩阵乘法的实现，我们可以看到，我们首先在栈空间上申请了一个新的矩阵res，对其进行矩阵乘法运算，返回后调用析构函数释放内存。我们使用cuda优化后的代码如下：
+\begin{lstlisting}[language=C++]
+void Mat::zero_init(int N, int M) {
+    n = N, m = M;
+    cudaMalloc(&a, sizeof(double) * n * m);
+    cudaMemset(a, 0, sizeof(double) * n * m);
+}
+Mat::~Mat() {
+    if (a) cudaFree(a);
+}
+__global__ void mult_mat_kernel(double *a, double *b,
+                                double *c, int n, int m,
+                                int k) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < n * k) {
+        int x = i / k, y = i % k;
+        c[i] = 0;
+        for (int j = 0; j < m; j++)
+            c[i] += a[x * m + j] * b[j * k + y];
+    }
+}
+Mat Mat::operator*(const Mat &_) const {
+    assert(m == _.n);
+    Mat res;
+    res.zero_init(n, _.m);
+    mult_mat_kernel<<<(n * _.m + 1023) / 1024, 1024>>>(
+        a, _.a, res.a, n, m, _.m);
+    return res;
+}
+\end{lstlisting}
+可以看到，我们仅仅是将核心的计算部分改为了cuda的核函数。将这份代码编译训练1个epoch后，得到如下结果：
+\begin{lstlisting}
+epoch:0 average_acc:0.856976 time used:71.9752s
+\end{lstlisting}
+可以看到，相比于cpu版本，速度提升了将近一倍。然而我们发现，cuda版本的速度并没有达到我们的预期，因此我们尝试进一步优化。使用NVIDIA的nsight进行性能分析，得到如下结果：
+
+\section{实验结果}
+
 
 
 \ctexset{bibname=参考资料}

@@ -17,27 +17,22 @@ struct MLP {
         return *this;
     }
 
-    void init(int input_size, int hidden_size,
-              int output_size, double LR) {
-        W1.random_init(input_size, hidden_size, 0,
-                       sqrt(2.0 / input_size));
-        W2.random_init(hidden_size, output_size, 0,
-                       sqrt(2.0 / hidden_size));
+    void init(int input_size, int hidden_size, int output_size, double LR) {
+        W1.random_init(input_size, hidden_size, 0, sqrt(2.0 / input_size));
+        W2.random_init(hidden_size, output_size, 0, sqrt(2.0 / hidden_size));
         b1.random_init(1, hidden_size, 0, sqrt(2.0));
         b2.random_init(1, output_size, 0, sqrt(2.0));
 
         lr = LR;
     }
-    void forward(const Mat &input, Mat &z1, Mat &a1,
-                 Mat &z2, Mat &a2) {
+    void forward(const Mat &input, Mat &z1, Mat &a1, Mat &z2, Mat &a2) {
         z1 = input * W1 + b1;
         a1 = z1.relu();
         z2 = a1 * W2 + b2;
         a2 = z2.softmax();
     }
 
-    void backward(Mat &input, Mat &z1, Mat &a1, Mat &z2,
-                  Mat &a2, Mat &label) {
+    void backward(Mat &input, Mat &z1, Mat &a1, Mat &z2, Mat &a2, Mat &label) {
         Mat delta2 = (a2 - label).mult(z2.softmax_());
         Mat delta1 = (delta2 * W2.T()).mult(z1.relu_());
 
@@ -78,8 +73,7 @@ void train(std::vector<mnist_data> &data, int epoch) {
         for (auto &d : data) {
             Mat input, label;
             input.zero_init(1, 784);
-            for (int i = 0; i < 784; i++)
-                input.a[i] = d.a[i] / 255.0;
+            for (int i = 0; i < 784; i++) input.a[i] = d.a[i] / 255.0;
 
             // input.print();
 
@@ -99,12 +93,11 @@ void train(std::vector<mnist_data> &data, int epoch) {
             // if (++t == 100) break;
         }
         double average_accuracy =
-            std::accumulate(accuracy.begin(),
-                            accuracy.end(), 0.0)
+            std::accumulate(accuracy.begin(), accuracy.end(), 0.0)
             / accuracy.size();
-        std::cout << i << " " << average_accuracy << " "
-                  << 1.0 * (clock() - t) / CLOCKS_PER_SEC
-                  << std::endl;
+        std::cout << "epoch:" << i << " average_acc:" << average_accuracy
+                  << " time used:" << 1.0 * (clock() - t) / CLOCKS_PER_SEC
+                  << "s" << std::endl;
         if (average_accuracy > best_accuracy) {
             best_accuracy = average_accuracy;
             ans = net;
@@ -117,8 +110,7 @@ std::vector<int> test(std::vector<mnist_data> &data) {
     for (auto &d : data) {
         Mat input;
         input.zero_init(1, 784);
-        for (int i = 0; i < 784; i++)
-            input.a[i] = d.a[i] / 255.0;
+        for (int i = 0; i < 784; i++) input.a[i] = d.a[i] / 255.0;
 
         Mat z1, a1, z2, a2;
         ans.forward(input, z1, a1, z2, a2);
@@ -133,12 +125,9 @@ std::vector<int> test(std::vector<mnist_data> &data) {
 }
 int main() {
     std::cout << "start" << std::endl;
-    std::vector<mnist_data> train_data =
-        input("./data/train.csv", true);
-    std::cout << "train_data.size()" << train_data.size()
-              << std::endl;
-    std::vector<mnist_data> test_data =
-        input("./data/test.csv", false);
+    std::vector<mnist_data> train_data = input("./data/train.csv", true);
+    std::cout << "train_data.size()" << train_data.size() << std::endl;
+    std::vector<mnist_data> test_data = input("./data/test.csv", false);
     train(train_data, 10);
     output("./output/submission.csv", test(test_data));
     return 0;

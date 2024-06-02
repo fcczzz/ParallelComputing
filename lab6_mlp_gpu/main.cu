@@ -173,9 +173,9 @@ void train(std::vector<mnist_data> &data, int epoch) {
         }
         average_accuracy /= data.size();
         cudaDeviceSynchronize();
-        std::cout << i << " " << average_accuracy << " "
-                  << 1.0 * (clock() - t) / CLOCKS_PER_SEC
-                  << std::endl;
+        std::cout << "epoch:" << i << " average_acc:" << average_accuracy
+                  << " time used:" << 1.0 * (clock() - t) / CLOCKS_PER_SEC
+                  << "s" << std::endl;
         if (average_accuracy > best_accuracy) {
             best_accuracy = average_accuracy;
             ans = net;

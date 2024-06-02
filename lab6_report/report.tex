@@ -13,37 +13,31 @@
 \usepackage{dirtree}
 \definecolor{teal}{RGB}{0,128,128}
 \setlist[itemize]{noitemsep}
-\lstset{
-    language=C++,
-    basicstyle=\ttfamily\footnotesize,
-    keywordstyle=\color{blue},
-    commentstyle=\color{gray},
-    stringstyle=\color{red},
-    numbers=left,
-    numberstyle=\tiny,
-    stepnumber=1,
-    numbersep=5pt,
-    backgroundcolor=\color{lightgray},
-    tabsize=2,
-    showspaces=false,
-    showstringspaces=false,
-    frame=single,
-    breaklines=true,
-    postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space},
-}
 
-\lstdefinestyle{Python}{
-    language        =   Python, % 语言选Python
-    basicstyle      =   \zihao{-5}\ttfamily,
-    numberstyle     =   \zihao{-5}\ttfamily,
-    keywordstyle    =   \color{blue},
-    keywordstyle    =   [2] \color{teal},
-    stringstyle     =   \color{magenta},
-    commentstyle    =   \color{red}\ttfamily,
-    breaklines      =   true,   % 自动换行，建议不要写太长的行
-    columns         =   fixed,  % 如果不加这一句，字间距就不固定，很丑，必须加
-    basewidth       =   0.5em,
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{codered}{rgb}{0.89,0.4,.45}
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{codered},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
 }
+\lstset{style=mystyle}
 
 \title{\textbf{并行计算大作业课程报告}}
 \author{方驰正 PB21000163}
@@ -62,7 +56,7 @@
 % \end{abstract}
 
 \section{实验目的}
-在本次实验中，我们使用MNIST手写数字数据集，训练了一个mlp自动感知机，并使用其预测了测试集，将结果提交至kaggle上的手写数字识别项目。分别实现了cpu串行版本和gpu并行版本，并对gpu并行版本进行优化，最终达到了96.1\%的准确率，以及相比于cpu版本的8倍的加速比。
+在本次实验中，我们使用MNIST手写数字数据集，训练了一个mlp自动感知机，并使用其预测了测试集，将结果提交至kaggle上的手写数字识别项目。分别实现了cpu串行版本和gpu并行版本，并对gpu并行版本进行优化，最终达到了96.1\%的准确率，以及相比于cpu版本的9.5倍的加速比。
 
 \section{实验环境}
 \begin{itemize}
@@ -264,6 +258,7 @@ epoch:9 average_acc:0.978310 time used:1279.45s
 \section{并行实现和优化}
 可以看到，串行版本的程序的运行时间还是比较长，因此我们尝试使用cuda，在gpu上进行并行计算。
 由于主要的计算部分都在matrix.cpp中，因此我们重点的优化部分也在这里。这里，我们以矩阵乘法为例，介绍我们的优化方法。
+\subsection{编写核函数}
 \begin{lstlisting}[language=C++]
 void Mat::zero_init(int N, int M) {
     n = N, m = M;
@@ -318,6 +313,110 @@ epoch:0 average_acc:0.856976 time used:71.9752s
 \end{lstlisting}
 可以看到，相比于cpu版本，速度提升了将近一倍。然而我们发现，cuda版本的速度并没有达到我们的预期，因此我们尝试进一步优化。使用NVIDIA的nsight进行性能分析，得到如下结果：
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{nsight1.jpg}
+    \caption{cuda性能分析1}
+\end{figure}
+
+可以看到，cudaFree占了49.3\%的时间，cudaMalloc占了29.8\%的时间，cudaMemcpy占了8.9\%的时间，远远超过了cudaLaunchKernel的时间。因此我们尝试优化这几部分。
+\subsection{优化内存分配}
+观察代码可以发现，我们在每次调用矩阵相关函数时，都需要在栈空间上分配cuda指针，申请cuda内存，又在函数结束时调用析构函数释放cuda内存。这样的操作会导致频繁的cudaMalloc和cudaFree，从而导致性能下降。因此，我们尝试将每个中间结果以static的形式保存在全局变量中，避免重复的cudaMalloc和cudaFree。具体代码如下：
+\begin{lstlisting}[language=C++]
+void forward(const Mat &input, Mat &z1, Mat &a1,
+             Mat &z2, Mat &a2) {
+    static Mat input_mult_W1(input.n, W1.m);
+    Mult_mat(input, W1, input_mult_W1);
+    Add_mat(input_mult_W1, b1, z1);
+    Relu(z1, a1);
+
+    static Mat a1_mult_W2(a1.n, W2.m);
+    Mult_mat(a1, W2, a1_mult_W2);
+    Add_mat(a1_mult_W2, b2, z2);
+    Softmax(z2, a2);
+}
+void Mult_mat(const Mat &a, const Mat &b, Mat &c) {
+    assert(a.m == b.n);
+    assert(a.n == c.n);
+    assert(b.m == c.m);
+    mult_mat_kernel<<<(a.n * b.m + 1023) / 1024, 1024>>>(
+        a.a, b.a, c.a, a.n, a.m, b.m);
+}
+\end{lstlisting}
+这样，我们优化掉了绝大部分的cudaMalloc和cudaFree，从而提升了性能。测试结果如下：
+% 0 0.858262 18.8083
+% 1 0.923024 19.0955 +
+\begin{lstlisting}
+epoch:0 average_acc:0.857357 time used:18.3029s
+epoch:1 average_acc:0.923952 time used:36.164s
+epoch:2 average_acc:0.940238 time used:53.9217s
+epoch:3 average_acc:0.951690 time used:71.6025s
+epoch:4 average_acc:0.958976 time used:89.4938s
+epoch:5 average_acc:0.964762 time used:107.319s
+epoch:6 average_acc:0.969524 time used:125.155s
+epoch:7 average_acc:0.973071 time used:143.015s
+epoch:8 average_acc:0.976024 time used:161.011s
+epoch:9 average_acc:0.978238 time used:179.375s
+\end{lstlisting}
+可以看到，相较于cpu版本已经达到了约7倍的加速比。我们继续使用NVIDIA的nsight进行性能分析，得到如下结果：
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{nsight2.jpg}
+    \caption{cuda性能分析2}
+\end{figure}
+可以看出，cudaMalloc和cudaFree的时间大大减少，而cudaMemcpy占了52.6\%的运行时间。因此我们尝试继续优化cudaMemcpy。
+\subsection{优化cudaMemcpy}
+使用nsight，我们能发现主要的cudaMemcpy操作都是在计算Accuracy和Loss时，将cuda内存中的数据拷贝到主机内存中。我们以计算Accuracy为例，介绍我们的优化方法。
+\begin{lstlisting}[language=C++]
+__global__ void Accuracy_kernel(double *a, double *b, int n,
+                                int *c) {
+    int Maxa = 0, Maxb = 0;
+    for (int i = 0; i < n; i++) {
+        if (a[i] > a[Maxa]) Maxa = i;
+        if (b[i] > b[Maxb]) Maxb = i;
+    }
+    *c = Maxa == Maxb;
+}
+
+double Accuracy(const Mat &a, const Mat &b) {
+    // a,b are 1*n matrix
+
+    static int *c;
+    cudaMalloc(&c, sizeof(int));
+    Accuracy_kernel<<<1, 1>>>(a.a, b.a, a.m, c);
+    int host_c;
+    cudaMemcpy(&host_c, c, sizeof(int),
+               cudaMemcpyDeviceToHost);
+
+    return host_c;
+}
+\end{lstlisting}
+我们可以看到，由于我们需要将一个int类型的数据拷贝到主机中，因此使用了cudaMemcpy。这样的操作会导致性能下降。因此，我们将所有的Accuracy和Loss的计算都放在cuda内存中进行，并在主程序中使用cuda数组来保存这些数据，直到需要计算Average Accuracy时，再将数据拷贝到主机内存中。这样，我们就避免了频繁的cudaMemcpy操作，从而提升了性能。输出结果如下：
+\begin{lstlisting}
+epoch:0 average_acc:0.856595 time used:13.6053s
+epoch:1 average_acc:0.923310 time used:27.1446s
+epoch:2 average_acc:0.940500 time used:40.6845s
+epoch:3 average_acc:0.951762 time used:54.2125s
+epoch:4 average_acc:0.959762 time used:67.7621s
+epoch:5 average_acc:0.965143 time used:81.2944s
+epoch:6 average_acc:0.969619 time used:94.8306s
+epoch:7 average_acc:0.972905 time used:108.369s
+epoch:8 average_acc:0.976071 time used:121.902s
+epoch:9 average_acc:0.978238 time used:135.449s
+\end{lstlisting}
+可以看到，相较于cpu版本，我们的cuda版本已经达到了约9.5倍的加速比。运用nsight进行性能分析，得到如下结果：
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{nsight3.jpg}
+    \caption{cuda性能分析3}
+\end{figure}
+可以看到，主要的时间开销都在cudaLaunchKernel上，占据了总运行时间的87.3\%。因此，接下来的优化方向应该是优化时间开销大的核函数，如矩阵乘法。不过由于时间限制，暂时没有进一步优化。我们将测试结果提交至kaggle上，得到如下结果：
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{gpu_result.jpg}
+    \caption{并行版本的kaggle提交结果}
+\end{figure}
+可以看到我们的并行方法在达到9.5倍加速比的同时，准确率也有略微提升，达到了96.135\%。
 \section{实验结果}
 
 

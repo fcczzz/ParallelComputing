@@ -9,6 +9,7 @@
 /lab6/mlp_gpu/mlp
 /lab6/report/*
 !/lab6/report/report.tex
+!/lab6/report/report.pdf
 *.pdf
 .vs/
 build/
